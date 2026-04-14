@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 282550e3a8c4077f5add9b4af054a6b9, type: 3}
+  m_Name: DefaultParameters
+  m_EditorClassIdentifier: CityGenerator.Core::CityGenerator.Core.Parameters.CityParameters
+  <WorldSize>k__BackingField: 500
+  <MaxSegments>k__BackingField: 2000
+  <MaxSeedingSamples>k__BackingField: 20
+  <HighwayLength>k__BackingField: 60
+  <MaxHighwayDepth>k__BackingField: 100
+  <StreetLength>k__BackingField: 30
+  <MaxStreetDepth>k__BackingField: 50
+  <MinStreetPopulation>k__BackingField: 0.05
+  <SnapDistance>k__BackingField: 5
+  <MaxRotationAttempts>k__BackingField: 6
+  <RotationStep>k__BackingField: 15
+  <MinLengthFactor>k__BackingField: 0.4
+  <PopulationMapResolution>k__BackingField: 128
+  <HighwayReductionRadius>k__BackingField: 80
+  <HighwayReductionAmount>k__BackingField: 0.6
+  <StreetReductionRadius>k__BackingField: 30
+  <StreetReductionAmount>k__BackingField: 0.1
+  _highwayRule: {fileID: 11400000, guid: b7a7154e198449b73b615cd58b791e0c, type: 2}
+  _streetRule: {fileID: 11400000, guid: c703dfa213cedfe55a3f7489e6f04660, type: 2}
+  <PopulationMap>k__BackingField: {fileID: 2800000, guid: 6573efd8625218901a994beb79ddf43c, type: 3}
+  <WaterMask>k__BackingField: {fileID: 2800000, guid: ef0ad1667304af6588f7e74453d7f660, type: 3}
