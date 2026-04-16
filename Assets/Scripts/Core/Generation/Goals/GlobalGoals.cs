@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using CityGenerator.Core.Maps;
 using CityGenerator.Core.Parameters;
 using CityGenerator.Core.Road;
@@ -31,13 +32,26 @@ namespace CityGenerator.Core.Generation
             var nextParams = segment.Rule.ProposeNextSegment(ctx);
             results.Add(ParamsToSegment(segment, nextParams, cityParameters));
 
-            // Propose branches
+            // Propose branches, if they're too close in angle, reject
+            var usedAngles = new List<float> { nextParams.Angle };
             foreach (var branchParams in segment.Rule.ProposeBranches(ctx))
             {
+                bool tooClose = usedAngles.Any(used => AnglesWithinThreshold(used, branchParams.Angle, cityParameters.MinBranchAngle));
+
+                if (tooClose) continue;
+
+                usedAngles.Add(branchParams.Angle);
                 results.Add(ParamsToSegment(segment, branchParams, cityParameters));
             }
 
             return results;
+        }
+
+        private static bool AnglesWithinThreshold(float angleA, float angleB, float threshold)
+        {
+            float delta = Mathf.Abs(Mathf.DeltaAngle(angleA, angleB));
+            // Too close if nearly same direction or nearly opposite direction
+            return delta < threshold || delta > (180f - threshold);
         }
 
         private static SegmentContext BuildContext(

@@ -10,21 +10,21 @@ namespace CityGenerator.Runtime
 {
     public class CityGeneratorController : MonoBehaviour
     {
-        [field: Header("City Settings")]
-        [field: SerializeField] public CityParameters Parameters { get; private set; } = null!;
+        [Header("City Settings")]
+        [SerializeField] private CityParameters Parameters = null!;
 
-        [field: Header("Road Visual Settings")]
-        [field: SerializeField] public RoadVisualizer RoadVisualizer { get; private set; } = null!;
+        [Header("Road Visual Settings")]
+        [SerializeField] private RoadVisualizer RoadVisualizer = null!;
 
-        [field: Header("Map Visual Settings")]
-        [field: SerializeField] public MapVisualizer MapVisualizer { get; private set; } = null!;
-        [field: SerializeField] public MapDisplay ShowMap { get; private set; } = MapDisplay.Population;
+        [Header("Map Visual Settings")]
+        [SerializeField] private MapVisualizer _mapVisualizer = null!;
+        [SerializeField] private MapDisplay _displayMap = MapDisplay.Population;
 
-        [field: Header("Simulation Settings")]
-        [field: Tooltip("If enabled, step through simulation instead of instantly computing")]
-        [field: SerializeField] public bool StepThrough { get; private set; } = true;
-        [field: SerializeField] public float StepDelay { get; private set; } = 0.02f;
-        [field: SerializeField] public int StepsPerFrame { get; private set; } = 1;
+        [Header("Simulation Settings")]
+        [Tooltip("If enabled, step through simulation instead of instantly computing")]
+        [SerializeField] private bool _stepThrough = true;
+        [SerializeField] private float _stepDelay = 0.02f;
+        [SerializeField] private int _stepsPerFrame = 1;
 
         private RoadGenerator? _roadGenerator;
 
@@ -35,25 +35,25 @@ namespace CityGenerator.Runtime
         {
             StopAllCoroutines();
 
-            MapVisualizer.Show(ShowMap);
-
             RoadVisualizer.Clear();
             _roadGenerator = new RoadGenerator(Parameters);
 
-            if (StepThrough)
+            if (_stepThrough)
                 StartCoroutine(GenerateCoroutine());
             else
             {
                 _roadGenerator.GenerateAll();
                 RoadVisualizer.Refresh(_roadGenerator.Graph);
             }
+
+            _mapVisualizer.ShowTexture(GetMapTexture(), Parameters);
         }
 
         private IEnumerator GenerateCoroutine()
         {
             while (!_roadGenerator!.IsComplete)
             {
-                for (int i = 0; i < StepsPerFrame; i++)
+                for (int i = 0; i < _stepsPerFrame; i++)
                 {
                     if (_roadGenerator.IsComplete) break;
                     _roadGenerator.GenerateNextSegment();
@@ -61,11 +61,30 @@ namespace CityGenerator.Runtime
 
                 RoadVisualizer.Refresh(_roadGenerator.Graph);
 
-                if (StepDelay > 0)
-                    yield return new WaitForSeconds(StepDelay);
+                if (_stepDelay > 0)
+                    yield return new WaitForSeconds(_stepDelay);
                 else
                     yield return null;
             }
+        }
+
+        private Texture2D? GetMapTexture()
+        {
+            Texture2D? texture = _displayMap switch
+            {
+                MapDisplay.Population => Parameters.PopulationMap,
+                MapDisplay.Water => Parameters.WaterMask,
+                MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
+                _ => null
+            };
+
+            if (texture == null)
+            {
+                Debug.LogWarning($"Map texture for type {_displayMap} is null");
+            }
+            //Debug.Log($"Showing map texture {texture?.name}");
+
+            return texture;
         }
     }
 }

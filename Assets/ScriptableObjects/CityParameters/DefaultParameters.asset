@@ -12,23 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 282550e3a8c4077f5add9b4af054a6b9, type: 3}
   m_Name: DefaultParameters
   m_EditorClassIdentifier: CityGenerator.Core::CityGenerator.Core.Parameters.CityParameters
-  <WorldSize>k__BackingField: 500
-  <MaxSegments>k__BackingField: 2000
+  <WorldSize>k__BackingField: 1000
+  <MaxSegments>k__BackingField: 10000
   <MaxSeedingSamples>k__BackingField: 20
   <HighwayLength>k__BackingField: 60
-  <MaxHighwayDepth>k__BackingField: 100
+  <MaxHighwayDepth>k__BackingField: 80
   <StreetLength>k__BackingField: 30
   <MaxStreetDepth>k__BackingField: 50
   <MinStreetPopulation>k__BackingField: 0.05
-  <SnapDistance>k__BackingField: 5
+  <SnapDistance>k__BackingField: 15
   <MaxRotationAttempts>k__BackingField: 6
   <RotationStep>k__BackingField: 15
+  <MinBranchAngle>k__BackingField: 30
   <MinLengthFactor>k__BackingField: 0.4
   <PopulationMapResolution>k__BackingField: 128
-  <HighwayReductionRadius>k__BackingField: 80
-  <HighwayReductionAmount>k__BackingField: 0.6
+  <HighwayReductionRadius>k__BackingField: 60
+  <HighwayReductionAmount>k__BackingField: 0.2
   <StreetReductionRadius>k__BackingField: 30
-  <StreetReductionAmount>k__BackingField: 0.1
+  <StreetReductionAmount>k__BackingField: 0.05
   _highwayRule: {fileID: 11400000, guid: b7a7154e198449b73b615cd58b791e0c, type: 2}
   _streetRule: {fileID: 11400000, guid: c703dfa213cedfe55a3f7489e6f04660, type: 2}
   <PopulationMap>k__BackingField: {fileID: 2800000, guid: 6573efd8625218901a994beb79ddf43c, type: 3}

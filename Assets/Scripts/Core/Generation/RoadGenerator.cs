@@ -12,10 +12,11 @@ namespace CityGenerator.Core.Generation
 
     public class RoadGenerator
     {
+        public RuntimeMap RuntimePopulationMap { get; }
+
         private readonly CityParameters parameters;
         private readonly RoadGraph graph = new();
         private readonly Queue<RoadSegment> pending = new();
-        private readonly RuntimeMap populationMap;
 
         public RoadGraph Graph => graph;
         public bool IsComplete => pending.Count == 0 ||
@@ -29,7 +30,7 @@ namespace CityGenerator.Core.Generation
             }
 
             this.parameters = parameters;
-            this.populationMap = new RuntimeMap(
+            RuntimePopulationMap = new RuntimeMap(
                 parameters.PopulationMap,
                 parameters.PopulationMapResolution,
                 parameters.WorldSize
@@ -59,17 +60,17 @@ namespace CityGenerator.Core.Generation
 
             graph.AddEdge(fromNode, toNode, segment.Type);
 
-
-
             if (segment.Depth < parameters.GetMaxDepthForType(segment.Type) && !segment.WasPruned)
             {
-                var successors = GlobalGoals.Apply(segment, parameters, populationMap);
+                var successors = GlobalGoals.Apply(segment, parameters, RuntimePopulationMap);
                 foreach (var s in successors)
                 {
                     s.StartNode = toNode;
                     pending.Enqueue(s);
                 }
             }
+
+            ReducePopulationAlongSegment(segment);
 
             return true;
         }
@@ -92,7 +93,7 @@ namespace CityGenerator.Core.Generation
 
             // Single reduction at midpoint, radius covers the whole segment
             Vector2 midpoint = Vector2.Lerp(segment.Start, segment.End, 0.5f);
-            populationMap.ReduceAround(midpoint, radius, amount);
+            RuntimePopulationMap.ReduceAround(midpoint, radius, amount);
         }
 
         private void Seed()

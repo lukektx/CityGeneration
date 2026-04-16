@@ -30,7 +30,9 @@ namespace CityGenerator.Core.Parameters
         [field: SerializeField] public float SnapDistance { get; private set; } = 15f;
         [field: SerializeField] public float MaxRotationAttempts { get; private set; } = 6;
         [field: SerializeField] public float RotationStep { get; private set; } = 15f;
-        [Tooltip("Minimum percentage of length for a road to be")]
+        [field: Tooltip("Minimum angle difference between roads with the same start node")]
+        [field: SerializeField] public float MinBranchAngle { get; private set; } = 30f;
+        [field: Tooltip("Minimum percentage of length for a road to be")]
         [field: SerializeField] public float MinLengthFactor { get; private set; } = 0.4f;
 
         [field: Header("Population Reduction")]
