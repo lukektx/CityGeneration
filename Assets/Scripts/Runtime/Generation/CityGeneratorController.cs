@@ -26,7 +26,7 @@ namespace CityGenerator.Runtime
         [SerializeField] private float _stepDelay = 0.02f;
         [SerializeField] private int _stepsPerFrame = 1;
 
-        private RoadGenerator? _roadGenerator;
+        private StreetExpander? _expander;
 
         void Start() => Regenerate();
 
@@ -36,14 +36,16 @@ namespace CityGenerator.Runtime
             StopAllCoroutines();
 
             RoadVisualizer.Clear();
-            _roadGenerator = new RoadGenerator(Parameters);
+            _expander = new StreetExpander(Parameters);
 
             if (_stepThrough)
+            {
                 StartCoroutine(GenerateCoroutine());
+            }
             else
             {
-                _roadGenerator.GenerateAll();
-                RoadVisualizer.Refresh(_roadGenerator.Graph);
+                _expander.ExpandAll();
+                RoadVisualizer.Refresh(_expander.Graph);
             }
 
             _mapVisualizer.ShowTexture(GetMapTexture(), Parameters);
@@ -51,15 +53,15 @@ namespace CityGenerator.Runtime
 
         private IEnumerator GenerateCoroutine()
         {
-            while (!_roadGenerator!.IsComplete)
+            while (!_expander!.IsComplete)
             {
                 for (int i = 0; i < _stepsPerFrame; i++)
                 {
-                    if (_roadGenerator.IsComplete) break;
-                    _roadGenerator.GenerateNextSegment();
+                    if (_expander.IsComplete) break;
+                    _expander.ExpandNext();
                 }
 
-                RoadVisualizer.Refresh(_roadGenerator.Graph);
+                RoadVisualizer.Refresh(_expander.Graph);
 
                 if (_stepDelay > 0)
                     yield return new WaitForSeconds(_stepDelay);
@@ -74,7 +76,8 @@ namespace CityGenerator.Runtime
             {
                 MapDisplay.Population => Parameters.PopulationMap,
                 MapDisplay.Water => Parameters.WaterMask,
-                MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
+                // Disabling for now as it doesn't seem to be needed in simulation method
+                //MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
                 _ => null
             };
 

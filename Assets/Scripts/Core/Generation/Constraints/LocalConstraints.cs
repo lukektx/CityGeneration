@@ -12,6 +12,8 @@ namespace CityGenerator.Core.Generation
 
         public static ConstraintResult Apply(RoadSegment segment, RoadGraph graph, CityParameters parameters)
         {
+            RoadEdge? splitEdge = null;
+
             // 1. Check if endpoint is legal - try to fix if not
             if (!parameters.IsLegalPosition(segment.End))
             {
@@ -20,78 +22,103 @@ namespace CityGenerator.Core.Generation
             }
 
             // 2. Check for intersections with existing edges
+            float closestIntersectionDist = float.MaxValue;
+            Vector2 closestIntersection = Vector2.zero;
+            RoadEdge? intersectedEdge = null;
+
             foreach (var edge in graph.Edges)
             {
                 if (TryFindIntersection(segment, edge, out Vector2 intersection))
                 {
-                    // Prune segment to the intersection point
-                    segment.WasPruned = true;
-                    segment.End = intersection;
-                    RoadNode intersectionNode = graph.SplitEdge(edge, intersection);
-                    segment.EndNode = intersectionNode;
-                    return ConstraintResult.Succeed;
+                    float dist = Vector2.Distance(segment.Start, intersection);
+                    if (dist < closestIntersectionDist)
+                    {
+                        closestIntersectionDist = dist;
+                        closestIntersection = intersection;
+                        intersectedEdge = edge;
+                    }
                 }
             }
 
-            // 3. Snap street endpoints to nearby nodes, highways only snap on intersections
-            if (segment.Type == RoadType.Street)
+            if (intersectedEdge != null)
             {
-                RoadNode? nearby = FindNearbyNode(segment.End, graph, parameters.SnapDistance);
-                if (nearby != null)
-                {
-                    segment.WasPruned = true;
-                    segment.End = nearby.Position;
-                    segment.EndNode = nearby;
-                }
+                segment.End = closestIntersection;
+                splitEdge = intersectedEdge;
+            }
+
+            // 3. Snap street endpoints to nearby nodes, highways only snap on intersections
+            RoadNode? nearby = FindNearbyNode(segment.End, graph, parameters.SnapDistance);
+            if (nearby != null)
+            {
+                segment.End = nearby.Position;
+                segment.EndNode = nearby;
             }
 
             // 4. Snap to nearby edge if no node was found
             if (segment.EndNode == null)
             {
-                if (TrySnapToEdge(segment, graph, parameters))
+                if (TrySnapToEdge(segment, graph, parameters, out Vector2 snapPoint, out RoadEdge? snapEdge))
                 {
-                    // segment.WasPruned = true;
-                    return ConstraintResult.Succeed;
+                    segment.End = snapPoint;
+                    splitEdge = snapEdge;
                 }
+            }
 
+            // 5. Minimum length check
+            if (!ValidDistance(segment.Start, segment.End, parameters))
+            {
+                return ConstraintResult.Failed;
+            }
+
+            // 6. Apply edge split if needed
+            if (splitEdge != null)
+            {
+                RoadNode splitNode = graph.SplitEdge(splitEdge, segment.End);
+                segment.EndNode = splitNode;
             }
 
             return ConstraintResult.Succeed;
         }
 
-        private static bool TrySnapToEdge(RoadSegment segment, RoadGraph graph, CityParameters parameters)
+        private static bool ValidDistance(Vector2 start, Vector2 end, CityParameters parameters)
+        {
+            return Vector2.Distance(start, end) >= parameters.MinStreetLength;
+        }
+
+        private static bool TrySnapToEdge(
+            RoadSegment segment,
+            RoadGraph graph,
+            CityParameters parameters,
+            out Vector2 snapPoint,
+            out RoadEdge? snapEdge
+        )
         {
             float closestDist = parameters.SnapDistance;
-            RoadEdge? closestEdge = null;
-            Vector2 closestPoint = Vector2.zero;
+            snapEdge = null;
+            snapPoint = Vector2.zero;
 
             foreach (var edge in graph.Edges)
             {
                 // Skip edges connected to our start node
-                if (edge.From == segment.StartNode || edge.To == segment.StartNode)
+                if (edge.A == segment.StartNode || edge.B == segment.StartNode)
                     continue;
 
                 Vector2 closest = ClosestPointOnSegment(
                     segment.End,
-                    edge.From.Position,
-                    edge.To.Position
+                    edge.A.Position,
+                    edge.B.Position
                 );
 
                 float dist = Vector2.Distance(segment.End, closest);
                 if (dist < closestDist)
                 {
                     closestDist = dist;
-                    closestEdge = edge;
-                    closestPoint = closest;
+                    snapEdge = edge;
+                    snapPoint = closest;
                 }
             }
 
-            if (closestEdge == null) return false;
-
-            segment.End = closestPoint;
-            RoadNode snapNode = graph.SplitEdge(closestEdge, closestPoint);
-            segment.EndNode = snapNode;
-            return true;
+            return snapEdge != null;
         }
 
         private static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)
@@ -139,7 +166,7 @@ namespace CityGenerator.Core.Generation
         private static bool TryFindIntersection(RoadSegment segment, RoadEdge edge, out Vector2 intersection)
         {
             // Don't intersect with edges that are connected to our start node
-            if (edge.From == segment.StartNode || edge.To == segment.StartNode)
+            if (edge.A == segment.StartNode || edge.B == segment.StartNode)
             {
                 intersection = Vector2.zero;
                 return false;
@@ -147,7 +174,7 @@ namespace CityGenerator.Core.Generation
 
             return LineIntersection(
                 segment.Start, segment.End,
-                edge.From.Position, edge.To.Position,
+                edge.A.Position, edge.B.Position,
                 out intersection
             );
         }

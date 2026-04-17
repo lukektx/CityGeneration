@@ -7,24 +7,26 @@ namespace CityGenerator.Core.Road
 {
     public class RoadEdge
     {
-        public RoadNode From { get; }
-        public RoadNode To { get; }
+        public RoadNode A { get; }
+        public RoadNode B { get; }
         public RoadType Type { get; }
         public Spline Spline { get; }
 
-        public RoadEdge(RoadNode from, RoadNode to, RoadType type)
+        public RoadNode Other(RoadNode node) => node == A ? B : A;
+
+        public RoadEdge(RoadNode a, RoadNode b, RoadType type)
         {
-            From = from;
-            To = to;
+            A = a;
+            B = b;
             Type = type;
             Spline = new Spline
             {
                 {
-                    new BezierKnot(new float3(from.Position.x, 0, from.Position.y)),
+                    new BezierKnot(new float3(a.Position.x, 0, a.Position.y)),
                     TangentMode.Linear
                 },
                 {
-                    new BezierKnot(new float3(to.Position.x, 0, to.Position.y)),
+                    new BezierKnot(new float3(b.Position.x, 0, b.Position.y)),
                     TangentMode.Linear
                 }
             };

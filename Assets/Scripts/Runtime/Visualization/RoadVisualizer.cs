@@ -45,14 +45,14 @@ namespace CityGenerator.Runtime.Visualization
         {
             BuildMesh(
                 highwayFilter!,
-                graph.Edges.Where(e => e.Type == RoadType.Highway),
+                graph.Edges.Where(e => e.Type == RoadType.Major),
                 HighwayWidth,
                 highwaySplineSamples
             );
 
             BuildMesh(
                 streetFilter!,
-                graph.Edges.Where(e => e.Type == RoadType.Street),
+                graph.Edges.Where(e => e.Type == RoadType.Minor),
                 StreetWidth,
                 streetSplineSamples
             );
@@ -105,8 +105,8 @@ namespace CityGenerator.Runtime.Visualization
                     }
                     else
                     {
-                        a = new Vector3(edge.From.Position.x, 0, edge.From.Position.y);
-                        b = new Vector3(edge.To.Position.x, 0, edge.To.Position.y);
+                        a = new Vector3(edge.A.Position.x, 0, edge.A.Position.y);
+                        b = new Vector3(edge.B.Position.x, 0, edge.B.Position.y);
                         Vector3 dir = (b - a).normalized;
                         if (dir == Vector3.zero) continue;
                         perp = new Vector3(-dir.z, 0, dir.x) * (width * 0.5f);

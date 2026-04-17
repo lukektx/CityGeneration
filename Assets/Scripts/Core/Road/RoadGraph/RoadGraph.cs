@@ -21,30 +21,36 @@ namespace CityGenerator.Core.Road
             return node;
         }
 
-        public RoadEdge? AddEdge(RoadNode from, RoadNode to, RoadType type)
+        public RoadEdge? AddEdge(RoadNode a, RoadNode b, EdgeSlot slotOnA, EdgeSlot slotOnB, RoadType type)
         {
-            if (Vector2.Distance(from.Position, to.Position) < MIN_EDGE_LENGTH)
-                return null;
-
-            var edge = new RoadEdge(from, to, type);
+            var edge = new RoadEdge(a, b, type);
             _edges.Add(edge);
-            from.AddEdge(edge);
-            to.AddEdge(edge);
+            a.AddEdge(edge, slotOnA);
+            b.AddEdge(edge, slotOnB);
             return edge;
+        }
+
+        public bool CouldFormCycle(RoadNode from, RoadNode to)
+        {
+            return _nodes.Contains(from) && _nodes.Contains(to);
         }
 
         public RoadNode SplitEdge(RoadEdge edge, Vector2 position)
         {
             RoadNode newNode = AddNode(position);
             RoadType type = edge.Type;
-            RoadNode originalTo = edge.To;
+
+            // Find what slots this edge occupied on each endpoint
+            EdgeSlot slotOnA = edge.A.SlotFor(edge);
+            EdgeSlot slotOnB = edge.B.SlotFor(edge);
 
             // Remove original edge
             RemoveEdge(edge);
 
-            // Add two new edges
-            AddEdge(edge.From, newNode, type);
-            AddEdge(newNode, originalTo, type);
+            // A to newNode reuses A's slot, newNode receives as Base
+            AddEdge(edge.A, newNode, slotOnA, EdgeSlot.Base, type);
+            // newNode to B continues straight (Opposite), B reuses its slot
+            AddEdge(newNode, edge.B, EdgeSlot.Opposite, slotOnB, type);
 
             return newNode;
         }
@@ -52,8 +58,8 @@ namespace CityGenerator.Core.Road
         public void RemoveEdge(RoadEdge edge)
         {
             _edges.Remove(edge);
-            edge.From.RemoveEdge(edge);
-            edge.To.RemoveEdge(edge);
+            edge.A.RemoveEdge(edge);
+            edge.B.RemoveEdge(edge);
         }
     }
 }
