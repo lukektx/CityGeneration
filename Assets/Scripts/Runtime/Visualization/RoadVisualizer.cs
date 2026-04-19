@@ -131,32 +131,5 @@ namespace CityGenerator.Runtime.Visualization
             // mesh.RecalculateNormals();
             filter.mesh = mesh;
         }
-
-        private void BuildJunctionCaps
-        (
-            List<Vector3> verts,
-            List<int> tris,
-            RoadGraph graph,
-            float width
-        )
-        {
-            foreach (var node in graph.Nodes)
-            {
-                // Only add caps at actual junctions (more than one edge)
-                if (node.Edges.Count < 2) continue;
-
-                Vector3 center = new Vector3(node.Position.x, 0, node.Position.y);
-                float half = width * 0.5f;
-
-                int baseIdx = verts.Count;
-                verts.Add(center + new Vector3(-half, 0, -half));
-                verts.Add(center + new Vector3(-half, 0, half));
-                verts.Add(center + new Vector3(half, 0, half));
-                verts.Add(center + new Vector3(half, 0, -half));
-
-                tris.Add(baseIdx); tris.Add(baseIdx + 1); tris.Add(baseIdx + 2);
-                tris.Add(baseIdx); tris.Add(baseIdx + 2); tris.Add(baseIdx + 3);
-            }
-        }
     }
 }

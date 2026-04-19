@@ -27,8 +27,7 @@ namespace CityGenerator.Core.Parameters
         public float MaxMajorAngleDeviation = 15f;
 
         [Header("Minor Street Settings")]
-        public float MinorStreetLengthLong = 40f;
-        public float MinorStreetLengthShort = 25f;
+        public float MinorStreetLength = 40f;
         public float MaxMinorAngleDeviation = 0f;
 
         [Header("Legality")]

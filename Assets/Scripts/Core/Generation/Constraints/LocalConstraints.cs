@@ -13,18 +13,27 @@ namespace CityGenerator.Core.Generation
         public static ConstraintResult Apply(RoadSegment segment, RoadGraph graph, CityParameters parameters)
         {
             RoadEdge? splitEdge = null;
-
+            Debug.Log($"[LocalConstraints] Start {segment.Angle} from {segment.Start} -> {segment.End}");
             // 1. Check if endpoint is legal - try to fix if not
             if (!parameters.IsLegalPosition(segment.End))
             {
                 if (!TryFixIllegalEnd(segment, parameters))
+                {
+                    Debug.Log($"Local constraints can't fix illegal endpoint");
                     return ConstraintResult.Failed;
+                }
             }
 
-            // 2. Check for intersections with existing edges
+            Debug.Log($"[LocalConstraints] After 1 {segment.Angle} from {segment.Start} -> {segment.End}");
+            // 2. Enlarge segment and check for intersections with existing edges
+            // Covers case 2 and 3 in paper to 
             float closestIntersectionDist = float.MaxValue;
             Vector2 closestIntersection = Vector2.zero;
             RoadEdge? intersectedEdge = null;
+
+            // Enlarge segment length for this test, then reset afterwards
+            Vector2 originalEnd = segment.End;
+            segment.End = segment.Start + segment.Direction * segment.Length * 1.5f;
 
             foreach (var edge in graph.Edges)
             {
@@ -42,39 +51,48 @@ namespace CityGenerator.Core.Generation
 
             if (intersectedEdge != null)
             {
+                Debug.Log($"Local constraints shortening segment for intersection, previous end {segment.End} new end {closestIntersection}");
                 segment.End = closestIntersection;
                 splitEdge = intersectedEdge;
             }
 
-            // 3. Snap street endpoints to nearby nodes, highways only snap on intersections
+            else
+            {
+                segment.End = originalEnd;
+            }
+
+            Debug.Log($"[LocalConstraints] After 2 {segment.Angle} from {segment.Start} -> {segment.End}");
+
+            // 3. Snap street endpoints to nearby nodes
             RoadNode? nearby = FindNearbyNode(segment.End, graph, parameters.SnapDistance);
             if (nearby != null)
             {
+                // Don't snap to our own start node
+                if (nearby == segment.StartNode) return ConstraintResult.Failed;
+
                 segment.End = nearby.Position;
                 segment.EndNode = nearby;
+                splitEdge = null;
+                Debug.Log($"Local constraints snapping segment end to Position {segment.End}");
             }
 
-            // 4. Snap to nearby edge if no node was found
-            if (segment.EndNode == null)
-            {
-                if (TrySnapToEdge(segment, graph, parameters, out Vector2 snapPoint, out RoadEdge? snapEdge))
-                {
-                    segment.End = snapPoint;
-                    splitEdge = snapEdge;
-                }
-            }
-
-            // 5. Minimum length check
+            // 4. Minimum length check
             if (!ValidDistance(segment.Start, segment.End, parameters))
             {
                 return ConstraintResult.Failed;
             }
 
-            // 6. Apply edge split if needed
+            // 5. Apply edge split if needed
             if (splitEdge != null)
             {
                 RoadNode splitNode = graph.SplitEdge(splitEdge, segment.End);
                 segment.EndNode = splitNode;
+            }
+
+            // 6. Don't create duplicate edges
+            foreach (var he in segment.StartNode!.OutgoingEdges)
+            {
+                if (he.Destination == segment.EndNode) return ConstraintResult.Failed;
             }
 
             return ConstraintResult.Succeed;
@@ -83,50 +101,6 @@ namespace CityGenerator.Core.Generation
         private static bool ValidDistance(Vector2 start, Vector2 end, CityParameters parameters)
         {
             return Vector2.Distance(start, end) >= parameters.MinStreetLength;
-        }
-
-        private static bool TrySnapToEdge(
-            RoadSegment segment,
-            RoadGraph graph,
-            CityParameters parameters,
-            out Vector2 snapPoint,
-            out RoadEdge? snapEdge
-        )
-        {
-            float closestDist = parameters.SnapDistance;
-            snapEdge = null;
-            snapPoint = Vector2.zero;
-
-            foreach (var edge in graph.Edges)
-            {
-                // Skip edges connected to our start node
-                if (edge.A == segment.StartNode || edge.B == segment.StartNode)
-                    continue;
-
-                Vector2 closest = ClosestPointOnSegment(
-                    segment.End,
-                    edge.A.Position,
-                    edge.B.Position
-                );
-
-                float dist = Vector2.Distance(segment.End, closest);
-                if (dist < closestDist)
-                {
-                    closestDist = dist;
-                    snapEdge = edge;
-                    snapPoint = closest;
-                }
-            }
-
-            return snapEdge != null;
-        }
-
-        private static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)
-        {
-            Vector2 ab = b - a;
-            float t = Vector2.Dot(point - a, ab) / Vector2.Dot(ab, ab);
-            t = Mathf.Clamp01(t);
-            return a + t * ab;
         }
 
         private static bool TryFixIllegalEnd(RoadSegment segment, CityParameters parameters)

@@ -2,7 +2,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using CityGenerator.Core.Maps;
 using CityGenerator.Core.Parameters;
 using CityGenerator.Core.Quarters;
 using CityGenerator.Core.Road;
@@ -92,10 +91,10 @@ namespace CityGenerator.Core.Generation
 
             Vector2 endPos = startPos + Vector2.right * parameters.MajorStreetLength;
 
-            var startNode = graph.AddNode(startPos);
-            var endNode = graph.AddNode(endPos);
+            var startNode = graph.AddNode(startPos, RoadType.Major);
+            var endNode = graph.AddNode(endPos, RoadType.Major);
 
-            graph.AddEdge(startNode, endNode, EdgeSlot.Base, EdgeSlot.Base, RoadType.Major);
+            graph.AddEdge(startNode, endNode, RoadType.Major);
 
             // Start node has invalid EdgeSlot so dont use it
             //unfinishedMajor.Add(startNode);
@@ -106,39 +105,35 @@ namespace CityGenerator.Core.Generation
         {
             if (node.IsFinished)
             {
-                Debug.Log($"Node at {node.Position} is finished");
                 RemoveFromUnfinished(node);
                 return;
             }
 
             float length = (type == RoadType.Major)
                 ? parameters.MajorStreetLength
-                : parameters.MinorStreetLengthLong;
+                : parameters.MinorStreetLength;
 
             float angleDeviation = (type == RoadType.Major)
                 ? parameters.MaxMajorAngleDeviation
                 : parameters.MaxMinorAngleDeviation;
 
-            // Get base expansion angle from valence rules
-            var expansionData = GetExpansionAngle(node);
-            if (!expansionData.HasValue)
+            float? expansionAngle = GetExpansionAngle(node);
+            if (!expansionAngle.HasValue)
             {
-                Debug.Log($"Node at {node.Position} can't get expansionData");
                 node.IsFinished = true;
                 RemoveFromUnfinished(node);
                 return;
             }
 
-            (float baseAngle, EdgeSlot fromSlot) = expansionData.Value;
+            float angle = expansionAngle.Value + RandomAngleDeviation(angleDeviation);
 
-            // Apply Gaussian angle noise
-            float angle = baseAngle + RandomAngleDeviation(angleDeviation);
 
             float rad = angle * Mathf.Deg2Rad;
             Vector2 newDirection = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
             Vector2 newPos = node.Position + newDirection * length;
 
-            // Build proposed segment for LocalConstraints
+            Debug.Log($"{node.Position} Expansion angle after deviation {angle} segment from {node.Position} -> {newPos}");
+
             var segment = new RoadSegment(
                 start: node.Position,
                 end: newPos,
@@ -146,85 +141,42 @@ namespace CityGenerator.Core.Generation
                 startNode: node
             );
 
-            bool success = CommitSegment(segment, fromSlot);
+            bool success = CommitSegment(segment);
             if (!success)
             {
                 node.FailedExpansions++;
-                Debug.Log($"Node at {node.Position} failed expansion count {node.FailedExpansions}");
-
                 if (node.FailedExpansions >= parameters.MaxExpansionFailures)
                 {
                     node.IsFinished = true;
                     RemoveFromUnfinished(node);
                 }
             }
+            else
+            {
+                Debug.Log($"Success commiting segment from {segment.Start} -> {segment.End} angle {segment.Angle}");
+            }
         }
 
         private void FillQuarter(Quarter quarter)
         {
-            quarter.GetGridAxes(out Vector2 mainAxis, out _);
+            Vector2 mainAxis = quarter.MainAxis;
             float gridAngle = Mathf.Atan2(mainAxis.y, mainAxis.x) * Mathf.Rad2Deg;
 
-            RoadNode seedNode = graph.AddNode(quarter.Centroid);
+            RoadNode seedNode = graph.AddNode(quarter.Centroid, RoadType.Minor);
             seedNode.InitialAngle = gridAngle;
             unfinishedMinor.Add(seedNode);
         }
 
-        // private void FillQuarter(Quarter quarter)
-        // {
-        //     quarter.GetGridAxes(out Vector2 mainAxis, out Vector2 perpAxis);
-
-        //     foreach (var (node, inwardSlot) in quarter.CandidateSlots)
-        //     {
-        //         if (node.IsFinished || node.HasEdge(inwardSlot)) continue;
-
-        //         float inwardAngle = node.BaseAngle + (int)inwardSlot * 90f;
-        //         float inwardRad = inwardAngle * Mathf.Deg2Rad;
-        //         Vector2 inwardDir = new Vector2(Mathf.Cos(inwardRad), Mathf.Sin(inwardRad));
-
-        //         Vector2 chosenAxis = Vector2.Dot(mainAxis, inwardDir) < 0 ? -mainAxis : mainAxis;
-        //         float gridAngle = Mathf.Atan2(chosenAxis.y, chosenAxis.x) * Mathf.Rad2Deg;
-        //         float rad = gridAngle * Mathf.Deg2Rad;
-        //         Vector2 newPos = node.Position +
-        //             new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * parameters.MinorStreetLengthLong;
-
-        //         var segment = new RoadSegment(
-        //             start: node.Position,
-        //             end: newPos,
-        //             type: RoadType.Minor,
-        //             startNode: node
-        //         );
-
-        //         if (CommitSegment(segment, inwardSlot)) return;
-        //     }
-        // }
-
-        private bool CommitSegment(RoadSegment segment, EdgeSlot fromSlot)
+        private bool CommitSegment(RoadSegment segment)
         {
             var result = LocalConstraints.Apply(segment, graph, parameters);
-            if (result == ConstraintResult.Failed)
-            {
-                Debug.Log("Failed local constraints");
-                return false;
-            }
+            if (result == ConstraintResult.Failed) return false;
 
             bool toNodeExisted = segment.EndNode != null;
-            RoadNode toNode = segment.EndNode ?? graph.AddNode(segment.End);
-            EdgeSlot toSlot = toNodeExisted ? GetArrivalSlot(toNode, segment.StartNode!) : EdgeSlot.Base;
+            RoadNode toNode = segment.EndNode ?? graph.AddNode(segment.End, segment.Type);
 
-            // If slot is already filled, don't commit road
-            if (toNodeExisted && toNode.HasEdge(toSlot))
-            {
-                Debug.Log("Desired slot is already full");
-                return false;
-            }
-
-            var edge = graph.AddEdge(segment.StartNode!, toNode, fromSlot, toSlot, segment.Type);
-            if (edge == null)
-            {
-                Debug.Log("Graph cannot add edge");
-                return false;
-            }
+            var edge = graph.AddEdge(segment.StartNode!, toNode, segment.Type);
+            if (edge == null) return false;
 
             if (segment.StartNode!.Valence >= 4)
             {
@@ -240,54 +192,21 @@ namespace CityGenerator.Core.Generation
                     unfinishedMinor.Add(toNode);
             }
 
-            // Just check for quarters on all major road expansions
-            // Prevents missing them when roads are split
             if (segment.Type == RoadType.Major)
-            {
                 CheckForNewQuarters(edge);
-            }
+
             return true;
-        }
-
-        // Finds best aligned slot to use for connecting to existing node
-        private EdgeSlot GetArrivalSlot(RoadNode toNode, RoadNode fromNode)
-        {
-            Vector2 arrivalDir = (toNode.Position - fromNode.Position).normalized;
-
-            EdgeSlot bestSlot = EdgeSlot.Base;
-            float bestAlignment = float.MinValue;
-
-            foreach (EdgeSlot slot in System.Enum.GetValues(typeof(EdgeSlot)))
-            {
-                float slotAngle = (toNode.BaseAngle + slot switch
-                {
-                    EdgeSlot.Base => 180f,
-                    EdgeSlot.CCW => -90f,
-                    EdgeSlot.Opposite => 0f,
-                    EdgeSlot.CW => 90f,
-                    _ => 0f
-                }) * Mathf.Deg2Rad;
-
-                Vector2 slotDir = new Vector2(Mathf.Cos(slotAngle), Mathf.Sin(slotAngle));
-                float alignment = Vector2.Dot(arrivalDir, slotDir);
-
-                if (alignment > bestAlignment)
-                {
-                    bestAlignment = alignment;
-                    bestSlot = slot;
-                }
-            }
-
-            return bestSlot;
         }
 
         private void CheckForNewQuarters(RoadEdge newEdge)
         {
-            var newQuarters = QuarterDetector.FindQuartersForEdge(newEdge, graph, knownQuarters);
+            var newQuarters = QuarterDetector.FindQuartersForEdge(newEdge, knownQuarters);
             foreach (var quarter in newQuarters)
             {
                 pendingQuarters.Enqueue(quarter);
-                Debug.Log($"Formed quarter with {quarter.Nodes.Count} nodes and Centroid {quarter.Centroid} with {quarter.CandidateSlots.Count} candidate slots");
+                Debug.Log($"Formed quarter with {quarter.Nodes.Count} nodes and Centroid {quarter.Centroid}");
+                Debug.Log($"Quarter detected with {quarter.Nodes.Count} nodes: {string.Join(" -> ", quarter.Nodes.Select(n => n.Position))}");
+                Debug.Log($"Quarter edges: {string.Join(", ", quarter.BoundaryEdges.Select(e => $"{e.A.Position}<->{e.B.Position}"))}");
             }
         }
 
@@ -325,74 +244,82 @@ namespace CityGenerator.Core.Generation
             return nodes[nodes.Count - 1];
         }
 
-        private (float angle, EdgeSlot slot)? GetExpansionAngle(RoadNode node)
+        /// <summary>
+        /// Returns the angle to expand in, or null if the node can't expand.
+        /// Uses the largest angular gap between existing edges.
+        /// </summary>
+        private float? GetExpansionAngle(RoadNode node)
         {
-            return node.Valence switch
+            float? angle = node.Valence switch
             {
-                // Continue in growth direction
-                0 => (node.BaseAngle, EdgeSlot.Base),
-                1 => (node.BaseAngle, EdgeSlot.Opposite),
-
-                2 => ValenceTwoAngle(node),
-
-                // Find largest angular gap
+                0 => node.BaseAngle,
+                1 => node.BaseAngle + 180f,
+                2 => Random.value > 0.5f ? node.BaseAngle + 90f : node.BaseAngle - 90f,
                 3 => ValenceThreeAngle(node),
-
                 _ => null
             };
+            Debug.Log($"GetExpansionAngle: pos={node.Position} valence={node.Valence} baseAngle={node.BaseAngle:F1} expansionAngle={angle} outgoing=[{string.Join(", ", node.OutgoingEdges.Select(he => $"{node.GetAngle(he):F1}→{he.Destination.Position}"))}]");
+            return angle;
         }
 
-        private static (float, EdgeSlot) ValenceTwoAngle(RoadNode node)
+        private static float ValenceThreeAngle(RoadNode node)
         {
-            EdgeSlot choice;
+            float ccwAngle = node.BaseAngle + 90f;
+            float cwAngle = node.BaseAngle - 90f;
 
-            if (!node.HasEdge(EdgeSlot.CCW) && !node.HasEdge(EdgeSlot.CW))
+            // See which one has an existing edge closer to it
+            bool ccwTaken = false;
+            foreach (var he in node.OutgoingEdges)
             {
-                choice = Random.value > 0.5f ? EdgeSlot.CCW : EdgeSlot.CW;
-            }
-            else
-            {
-                choice = node.HasEdge(EdgeSlot.CCW) ? EdgeSlot.CW : EdgeSlot.CCW;
-            }
-
-            return choice == EdgeSlot.CCW
-                ? (node.BaseAngle + 90f, EdgeSlot.CCW)
-                : (node.BaseAngle - 90f, EdgeSlot.CW);
-        }
-
-        // Picks expansion angle opposite the one used before
-        private static (float, EdgeSlot) ValenceThreeAngle(RoadNode node)
-        {
-            if (!node.HasEdge(EdgeSlot.CCW) || !node.HasEdge(EdgeSlot.CW))
-            {
-                return node.HasEdge(EdgeSlot.CCW)
-                    ? (node.BaseAngle - 90f, EdgeSlot.CW)
-                    : (node.BaseAngle + 90f, EdgeSlot.CCW);
-            }
-
-            // fallback for irregular nodes
-            return GetRemainingAngle(node);
-        }
-
-        private static (float, EdgeSlot) GetRemainingAngle(RoadNode node)
-        {
-            foreach (EdgeSlot slot in System.Enum.GetValues(typeof(EdgeSlot)))
-            {
-                if (slot == EdgeSlot.Base) continue;
-                if (node.GetEdge(slot) == null)
+                float angle = node.GetAngle(he);
+                if (Mathf.Abs(Mathf.DeltaAngle(angle, ccwAngle)) < 45f)
                 {
-                    float angle = node.BaseAngle + slot switch
-                    {
-                        EdgeSlot.CCW => 90f,
-                        EdgeSlot.Opposite => 180f,
-                        EdgeSlot.CW => -90f,
-                        _ => 0f
-                    };
-                    return (angle, slot);
+                    ccwTaken = true;
+                    break;
                 }
             }
-            // Shouldn't reach here if valence check is correct
-            return (node.BaseAngle, EdgeSlot.Opposite);
+
+            return ccwTaken ? cwAngle : ccwAngle;
+        }
+
+        /// <summary>
+        /// Finds the center of the largest angular gap between existing edges.
+        /// </summary>
+        private static float? GetLargestGapAngle(RoadNode node)
+        {
+            if (node.Valence < 2) return null;
+
+            var angles = new List<float>();
+            foreach (var he in node.OutgoingEdges)
+            {
+                float angle = node.GetAngle(he);
+                angles.Add(angle);
+            }
+            angles.Sort();
+
+            float bestGapSize = 0f;
+            float bestGapCenter = 0f;
+
+            for (int i = 0; i < angles.Count; i++)
+            {
+                float a = angles[i];
+                float b = angles[(i + 1) % angles.Count];
+                float gap = b - a;
+                if (gap <= 0f) gap += 360f;
+
+                if (gap > bestGapSize)
+                {
+                    bestGapSize = gap;
+                    bestGapCenter = a + gap * 0.5f;
+                }
+            }
+
+            if (bestGapCenter > 180f) bestGapCenter -= 360f;
+            if (bestGapCenter < -180f) bestGapCenter += 360f;
+
+            Debug.Log($"LargestGap at {node.Position} | valence={node.Valence} | angles=[{string.Join(", ", angles.Select(a => a.ToString("F1")))}] | bestGap={bestGapSize:F1} | bestCenter={bestGapCenter:F1}");
+
+            return bestGapCenter;
         }
 
         private void RemoveFromUnfinished(RoadNode node)

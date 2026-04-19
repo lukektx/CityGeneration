@@ -4,86 +4,70 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CityGenerator.Core.Road;
-using Codice.Client.Common.TreeGrouper;
 using UnityEngine;
 
 namespace CityGenerator.Core.Quarters
 {
     public class Quarter : IEquatable<Quarter>
     {
+        public IReadOnlyList<HalfEdge> BoundaryHalfEdges { get; }
         public IReadOnlyList<RoadEdge> BoundaryEdges { get; }
-
-        private readonly List<RoadNode> _boundaryNodes;
-        private readonly List<EdgeSlot> _boundaryNodeSlots;
+        public IReadOnlyList<RoadNode> Nodes { get; }
 
         private readonly HashSet<RoadEdge> _boundaryEdgeSet;
-        public IReadOnlyList<RoadNode> Nodes => _boundaryNodes;
 
         public Vector2 Centroid { get; }
+        public bool IsClockwise { get; }
         public float Area { get; }
 
+        public Vector2 MainAxis { get; }
+        public Vector2 PerpindicularAxis { get; }
 
-        public List<(RoadNode, EdgeSlot)> InteriorSlots =>
-            _boundaryNodes.Zip(_boundaryNodeSlots, (f, s) => (Node: f, Slot: s)).ToList();
-
-        public List<(RoadNode, EdgeSlot)> CandidateSlots => InteriorSlots.Where(
-            s => !s.Item1.HasEdge(s.Item2)
-        ).ToList();
-
-        public Quarter(List<(RoadEdge, RoadNode)> traversal)
+        public Quarter(List<HalfEdge> faceHalfEdges)
         {
-            BoundaryEdges = traversal.Select(e => e.Item1).ToList();
+            BoundaryHalfEdges = faceHalfEdges;
+            BoundaryEdges = faceHalfEdges.Select(he => he.Edge).ToList();
+            Nodes = faceHalfEdges.Select(he => he.Origin).ToList();
+
             _boundaryEdgeSet = new HashSet<RoadEdge>(BoundaryEdges);
-            _boundaryNodes = traversal.Select(e => e.Item2).ToList();
-            _boundaryNodeSlots = ComputeSlots();
+
+            GetGridAxes(out Vector2 mainAxis, out Vector2 perpendicularAxis);
+            MainAxis = mainAxis;
+            PerpindicularAxis = perpendicularAxis;
 
             Centroid = ComputeCentroid();
-            Area = ComputeArea();
-        }
 
-        private List<EdgeSlot> ComputeSlots()
-        {
-            var slots = new List<EdgeSlot>();
-            int count = BoundaryEdges.Count;
-
-            for (int i = 0; i < count; i++)
-            {
-                var node = _boundaryNodes[i];
-                var incomingEdge = BoundaryEdges[(i - 1 + count) % count];
-
-                EdgeSlot arrivalSlot = node.SlotFor(incomingEdge);
-                EdgeSlot inwardSlot = (EdgeSlot)(((int)arrivalSlot + 1) % 4);
-
-                slots.Add(inwardSlot);
-            }
-
-            return slots;
+            float signedArea = ComputeSignedArea();
+            IsClockwise = signedArea > 0f;
+            Area = Mathf.Abs(signedArea);
         }
 
         private Vector2 ComputeCentroid()
         {
             Vector2 sum = Vector2.zero;
-            foreach (var node in _boundaryNodes)
+            foreach (var node in Nodes)
+            {
                 sum += node.Position;
+            }
 
-            return sum / _boundaryNodes.Count;
+            return sum / Nodes.Count;
         }
 
-        private float ComputeArea()
+        private float ComputeSignedArea()
         {
             // Shoelace formula
             float area = 0f;
-            for (int i = 0; i < _boundaryNodes.Count; i++)
+            for (int i = 0; i < Nodes.Count; i++)
             {
-                var a = _boundaryNodes[i].Position;
-                var b = _boundaryNodes[(i + 1) % _boundaryNodes.Count].Position;
+                var a = Nodes[i].Position;
+                var b = Nodes[(i + 1) % Nodes.Count].Position;
                 area += a.x * b.y - b.x * a.y;
             }
-            return Mathf.Abs(area) * 0.5f;
+            return area * 0.5f;
         }
 
         // Computes the dominant grid axes of the quarter
-        public void GetGridAxes(out Vector2 mainAxis, out Vector2 perpendicularAxis)
+        private void GetGridAxes(out Vector2 mainAxis, out Vector2 perpendicularAxis)
         {
             const float collinearThreshold = 15f;
             int count = BoundaryEdges.Count;

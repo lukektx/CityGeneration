@@ -22,8 +22,8 @@ MonoBehaviour:
   GrowthFocusFactor: 2
   MajorStreetLength: 60
   MaxMajorAngleDeviation: 15
-  MinorStreetLengthLong: 40
-  MinorStreetLengthShort: 25
+  MinorStreetLengthLong: 20
+  MinorStreetLengthShort: 15
   MaxMinorAngleDeviation: 0
   SnapDistance: 15
   MaxRotationAttempts: 6

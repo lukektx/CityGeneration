@@ -436,9 +436,9 @@ MonoBehaviour:
   Parameters: {fileID: 11400000, guid: 412ccfaa3135ad3b0a91a2cdb5482bd2, type: 2}
   RoadVisualizer: {fileID: 490626034}
   _mapVisualizer: {fileID: 490626037}
-  _displayMap: 0
+  _displayMap: 1
   _stepThrough: 1
-  _stepDelay: 0.02
+  _stepDelay: 0.5
   _stepsPerFrame: 1
 --- !u!4 &490626036
 Transform:

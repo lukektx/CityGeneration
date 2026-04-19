@@ -7,63 +7,75 @@ namespace CityGenerator.Core.Road
 {
     public class RoadNode
     {
-        public bool IsFinished { get; set; } = false;
         public Vector2 Position { get; }
-        // Direction of (inbound) edge that led to creating this node
+        public RoadType Type { get; }
+        public bool IsFinished { get; set; } = false;
+        public float? InitialAngle { get; set; }
         internal int FailedExpansions { get; set; }
 
         // Stores road edges in counter clockwise order
         // With index 0 as the base/incoming edge
-        private readonly RoadEdge?[] edges = new RoadEdge?[4];
-        public IReadOnlyList<RoadEdge?> Edges => edges;
-        public int Valence => System.Array.FindAll(edges, e => e != null).Length;
-        public RoadEdge? BaseEdge => edges[0];
-
-        public RoadEdge? GetEdge(EdgeSlot slot) => edges[(int)slot];
-        public bool HasEdge(EdgeSlot slot) => edges[(int)slot] != null;
-
-        public float? InitialAngle { get; set; }
+        private readonly List<HalfEdge> _outgoing = new();
+        public IReadOnlyList<HalfEdge> OutgoingEdges => _outgoing;
+        public int Valence => _outgoing.Count;
+        public HalfEdge? BaseEdge { get; private set; }
 
         public float BaseAngle
         {
             get
             {
                 if (BaseEdge == null) return InitialAngle ?? 0f;
-
-                var parent = BaseEdge.Other(this);
-                var dir = (Position - parent.Position).normalized;
-                return Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                return GetAngle(BaseEdge);
             }
         }
 
-        public RoadNode(Vector2 position)
+        public RoadNode(Vector2 position, RoadType type)
         {
             Position = position;
+            Type = type;
         }
 
-        internal void AddEdge(RoadEdge edge, EdgeSlot slot)
+        public float GetAngle(HalfEdge he)
         {
-            Debug.Assert(edges[(int)slot] == null, $"Slot {slot} already occupied at {Position}");
-            edges[(int)slot] = edge;
+            var dir = (he.Destination.Position - Position).normalized;
+            return Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         }
 
-        internal void RemoveEdge(RoadEdge edge)
+        internal void AddHalfEdge(HalfEdge he)
         {
-            for (int i = 0; i < edges.Length; i++)
+            if (BaseEdge == null) BaseEdge = he;
+            float angle = GetAngle(he);
+
+            int insertIndex = _outgoing.Count;
+            for (int i = 0; i < _outgoing.Count; i++)
             {
-                if (edges[i] == edge)
+                if (GetAngle(_outgoing[i]) > angle)
                 {
-                    edges[i] = null;
-                    return;
+                    insertIndex = i;
+                    break;
                 }
             }
+            _outgoing.Insert(insertIndex, he);
+            UpdateNextPointers();
         }
 
-        public EdgeSlot SlotFor(RoadEdge edge)
+
+        internal void RemoveHalfEdge(HalfEdge he)
         {
-            for (int i = 0; i < edges.Length; i++)
-                if (edges[i] == edge) return (EdgeSlot)i;
-            throw new System.InvalidOperationException("Edge not found on node");
+            _outgoing.Remove(he);
+            UpdateNextPointers();
+        }
+
+        // Each incoming half-edge's next is the next outgoing half-edge CCW
+        private void UpdateNextPointers()
+        {
+            for (int i = 0; i < _outgoing.Count; i++)
+            {
+                // The incoming twin of the next CCW outgoing edge
+                // points to the current outgoing edge as its next
+                int prevIndex = (i - 1 + _outgoing.Count) % _outgoing.Count;
+                _outgoing[prevIndex].Twin.Next = _outgoing[i];
+            }
         }
     }
 }

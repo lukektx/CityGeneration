@@ -9,15 +9,28 @@ namespace CityGenerator.Core.Road
     {
         public RoadNode A { get; }
         public RoadNode B { get; }
+        // A to B half edge
+        public HalfEdge HalfA { get; }
+        // B to A half edge
+        public HalfEdge HalfB { get; }
         public RoadType Type { get; }
         public Spline Spline { get; }
 
         public RoadNode Other(RoadNode node) => node == A ? B : A;
 
+        public HalfEdge GetHalfFrom(RoadNode node) => node == A ? HalfA : HalfB;
+        public HalfEdge GetHalfTo(RoadNode node) => node == A ? HalfB : HalfA;
+
         public RoadEdge(RoadNode a, RoadNode b, RoadType type)
         {
             A = a;
             B = b;
+
+            HalfA = new HalfEdge(a, this);
+            HalfB = new HalfEdge(b, this);
+            HalfA.Twin = HalfB;
+            HalfB.Twin = HalfA;
+
             Type = type;
             Spline = new Spline
             {
