@@ -76,36 +76,89 @@ namespace CityGenerator.Core.Generation
                 Debug.Log($"Local constraints snapping segment end to Position {segment.End}");
             }
 
-            // 4. Minimum length check
-            if (!ValidDistance(segment.Start, segment.End, parameters))
+            // 4. Dont snap major road to minor node
+            if (segment.Type == RoadType.Major)
+            {
+                if (splitEdge?.Type == RoadType.Minor || segment.EndNode?.Type == RoadType.Minor)
+                {
+                    return ConstraintResult.Failed;
+                }
+            }
+
+
+            // 5. Minimum length check
+            if (!ValidDistance(segment, parameters))
             {
                 return ConstraintResult.Failed;
             }
 
-            // 5. Apply edge split if needed
+            // 6. Minimum angle check
+            float proposedAngle = segment.Angle;
+            if (segment.StartNode != null)
+            {
+                foreach (var he in segment.StartNode.OutgoingEdges)
+                {
+                    float existingAngle = segment.StartNode.GetAngle(he);
+                    float diff = Mathf.Abs(Mathf.DeltaAngle(proposedAngle, existingAngle));
+                    if (diff < parameters.MinRoadAngle)
+                    {
+                        return ConstraintResult.Failed;
+                    }
+                }
+            }
+
+            if (segment.EndNode != null)
+            {
+                float incomingAngle = 180f + proposedAngle;
+                foreach (var he in segment.EndNode.OutgoingEdges)
+                {
+                    float existingAngle = segment.EndNode.GetAngle(he);
+                    float diff = Mathf.Abs(Mathf.DeltaAngle(incomingAngle, existingAngle));
+                    if (diff < parameters.MinRoadAngle)
+                    {
+                        return ConstraintResult.Failed;
+                    }
+                }
+            }
+
+
+            // 7. Don't create duplicate edges
+            foreach (var he in segment.StartNode!.OutgoingEdges)
+            {
+                if (he.Destination == segment.EndNode) return ConstraintResult.Failed;
+            }
+
+            // 8. Apply edge split if needed
             if (splitEdge != null)
             {
                 RoadNode splitNode = graph.SplitEdge(splitEdge, segment.End);
                 segment.EndNode = splitNode;
             }
 
-            // 6. Don't create duplicate edges
-            foreach (var he in segment.StartNode!.OutgoingEdges)
-            {
-                if (he.Destination == segment.EndNode) return ConstraintResult.Failed;
-            }
-
             return ConstraintResult.Succeed;
         }
 
-        private static bool ValidDistance(Vector2 start, Vector2 end, CityParameters parameters)
+        private static bool ValidDistance(RoadSegment segment, CityParameters parameters)
         {
-            return Vector2.Distance(start, end) >= parameters.MinStreetLength;
+            float roadLength = segment.Type == RoadType.Major ? parameters.MajorStreetLength : parameters.MinorStreetLength;
+            return segment.Length >= roadLength * parameters.MinLengthFactor;
         }
 
         private static bool TryFixIllegalEnd(RoadSegment segment, CityParameters parameters)
         {
-            // Try rotating
+            // 1. Try pruning length
+            Vector2 direction = segment.Direction;
+            for (float factor = 0.9f; factor >= parameters.MinLengthFactor; factor -= 0.1f)
+            {
+                Vector2 testEnd = segment.Start + direction * (segment.Length * factor);
+                if (parameters.IsLegalPosition(testEnd))
+                {
+                    segment.End = testEnd;
+                    return true;
+                }
+            }
+
+            // 2. Try rotating
             float originalAngle = segment.Angle;
             for (int i = 1; i <= parameters.MaxRotationAttempts; i++)
             {
@@ -119,18 +172,6 @@ namespace CityGenerator.Core.Generation
                         segment.End = testEnd;
                         return true;
                     }
-                }
-            }
-
-            // Try pruning length
-            Vector2 direction = segment.Direction;
-            for (float factor = 0.9f; factor >= parameters.MinLengthFactor; factor -= 0.1f)
-            {
-                Vector2 testEnd = segment.Start + direction * (segment.Length * factor);
-                if (parameters.IsLegalPosition(testEnd))
-                {
-                    segment.End = testEnd;
-                    return true;
                 }
             }
 

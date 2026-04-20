@@ -42,6 +42,24 @@ namespace CityGenerator.Core.Quarters
             Area = Mathf.Abs(signedArea);
         }
 
+        public bool IsPointInside(Vector2 point)
+        {
+            bool inside = false;
+            int j = Nodes.Count - 1;
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                var a = Nodes[i].Position;
+                var b = Nodes[j].Position;
+                if ((a.y > point.y) != (b.y > point.y) &&
+                    point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x)
+                {
+                    inside = !inside;
+                }
+                j = i;
+            }
+            return inside;
+        }
+
         private Vector2 ComputeCentroid()
         {
             Vector2 sum = Vector2.zero;

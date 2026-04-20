@@ -14,6 +14,9 @@ namespace CityGenerator.Runtime.Visualization
         [Header("Visual Settings")]
         [SerializeField] private Material HighwayMaterial = null!;
         [SerializeField] private Material StreetMaterial = null!;
+        [SerializeField] private Color _proposedSegmentSuccessColor = Color.green;
+        [SerializeField] private Color _proposedSegmentFailureColor = Color.red;
+
         [SerializeField] private float HighwayWidth = 1.5f;
         [SerializeField] private float StreetWidth = 0.5f;
 
@@ -24,6 +27,9 @@ namespace CityGenerator.Runtime.Visualization
 
         private MeshFilter? highwayFilter;
         private MeshFilter? streetFilter;
+        private LineRenderer _proposedSegmentRenderer;
+        private Material _proposedMinorSegmentMaterial;
+        private Material _proposedMajorSegmentMaterial;
 
         private const float SPLINE_TANGENT_EPSILON = 0.0001f;
 
@@ -31,6 +37,8 @@ namespace CityGenerator.Runtime.Visualization
         {
             highwayFilter = CreateMeshObject("Highways", HighwayMaterial);
             streetFilter = CreateMeshObject("Streets", StreetMaterial);
+
+            InitProposedSegment();
         }
 
         private MeshFilter CreateMeshObject(string name, Material material)
@@ -62,6 +70,35 @@ namespace CityGenerator.Runtime.Visualization
         {
             if (highwayFilter != null) highwayFilter.mesh = new Mesh();
             if (streetFilter != null) streetFilter.mesh = new Mesh();
+        }
+
+        public void OnSegmentProposed(RoadSegment segment, bool accepted)
+        {
+            Material material = segment.Type == RoadType.Major
+                ? _proposedMajorSegmentMaterial
+                : _proposedMinorSegmentMaterial;
+            material.color = accepted ? _proposedSegmentSuccessColor : _proposedSegmentFailureColor
+            ;
+            _proposedSegmentRenderer.material = material;
+            float width = segment.Type == RoadType.Major ? HighwayWidth : StreetWidth;
+            _proposedSegmentRenderer.startWidth = width;
+            _proposedSegmentRenderer.endWidth = width;
+
+            _proposedSegmentRenderer.SetPosition(0, new Vector3(segment.Start.x, 0, segment.Start.y));
+            _proposedSegmentRenderer.SetPosition(1, new Vector3(segment.End.x, 0, segment.End.y));
+            _proposedSegmentRenderer.enabled = true;
+        }
+
+        private void InitProposedSegment()
+        {
+            var go = new GameObject("ProposedSegment");
+            go.transform.SetParent(transform);
+            _proposedSegmentRenderer = go.AddComponent<LineRenderer>();
+            _proposedSegmentRenderer.positionCount = 2;
+            _proposedSegmentRenderer.enabled = false;
+
+            _proposedMajorSegmentMaterial = new Material(HighwayMaterial);
+            _proposedMinorSegmentMaterial = new Material(StreetMaterial);
         }
 
         private void BuildMesh

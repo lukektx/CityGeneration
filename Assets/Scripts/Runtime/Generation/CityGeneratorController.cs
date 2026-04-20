@@ -1,6 +1,9 @@
 #nullable enable
 
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using CityGenerator.Core.Generation;
 using CityGenerator.Core.Parameters;
 using CityGenerator.Runtime.Visualization;
@@ -18,7 +21,8 @@ namespace CityGenerator.Runtime
 
         [Header("Map Visual Settings")]
         [SerializeField] private MapVisualizer _mapVisualizer = null!;
-        [SerializeField] private MapDisplay _displayMap = MapDisplay.Population;
+        [SerializeField] private MapType _displayMaps = MapType.Background;
+        [SerializeField] private List<MapDisplayOptions> _mapDisplayOptions = new();
 
         [Header("Simulation Settings")]
         [Tooltip("If enabled, step through simulation instead of instantly computing")]
@@ -37,6 +41,7 @@ namespace CityGenerator.Runtime
 
             RoadVisualizer.Clear();
             _expander = new StreetExpander(Parameters);
+            _expander.OnSegmentProposed += RoadVisualizer.OnSegmentProposed;
 
             if (_stepThrough)
             {
@@ -48,7 +53,15 @@ namespace CityGenerator.Runtime
                 RoadVisualizer.Refresh(_expander.Graph);
             }
 
-            _mapVisualizer.ShowTexture(GetMapTexture(), Parameters);
+            var mapTypes = Enum.GetValues(typeof(MapType)).Cast<MapType>().ToList();
+            mapTypes.OrderBy(type => _mapDisplayOptions.Find(opt => opt.Type == type).priority);
+            foreach (MapType type in mapTypes)
+            {
+                if (_displayMaps.HasFlag(type))
+                {
+                    DisplayMap(type);
+                }
+            }
         }
 
         private IEnumerator GenerateCoroutine()
@@ -70,12 +83,18 @@ namespace CityGenerator.Runtime
             }
         }
 
-        private Texture2D? GetMapTexture()
+        private void DisplayMap(MapType mapType)
         {
-            Texture2D? texture = _displayMap switch
+            _mapVisualizer.ShowTexture(GetMapTexture(mapType), GetDisplayOptions(mapType), Parameters.WorldSize);
+        }
+
+        private Texture2D? GetMapTexture(MapType mapType)
+        {
+            Texture2D? texture = mapType switch
             {
-                MapDisplay.Population => Parameters.PopulationMap,
-                MapDisplay.Water => Parameters.WaterMask,
+                MapType.Population => Parameters.PopulationMap,
+                MapType.Water => Parameters.WaterMask,
+                MapType.Background => Texture2D.whiteTexture,
                 // Disabling for now as it doesn't seem to be needed in simulation method
                 //MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
                 _ => null
@@ -83,11 +102,16 @@ namespace CityGenerator.Runtime
 
             if (texture == null)
             {
-                Debug.LogWarning($"Map texture for type {_displayMap} is null");
+                Debug.LogWarning($"Map texture for type {mapType} is null");
             }
             //Debug.Log($"Showing map texture {texture?.name}");
 
             return texture;
+        }
+
+        private MapDisplayOptions? GetDisplayOptions(MapType mapType)
+        {
+            return _mapDisplayOptions.Find(pair => pair.Type == mapType);
         }
     }
 }

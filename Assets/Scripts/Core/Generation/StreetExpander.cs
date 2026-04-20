@@ -1,22 +1,21 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CityGenerator.Core.Parameters;
 using CityGenerator.Core.Quarters;
 using CityGenerator.Core.Road;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace CityGenerator.Core.Generation
 {
     public class StreetExpander
     {
+        public event Action<RoadSegment, bool>? OnSegmentProposed;
         private readonly CityParameters parameters;
         private readonly RoadGraph graph = new();
-
-        // Unfinished nodes available for expansion
-        private readonly HashSet<RoadNode> unfinishedMajor = new();
-        private readonly HashSet<RoadNode> unfinishedMinor = new();
 
         // Detected quarters waiting to be filled
         private readonly Queue<Quarter> pendingQuarters = new();
@@ -26,8 +25,7 @@ namespace CityGenerator.Core.Generation
         public bool IsComplete =>
             graph.Edges.Count >= parameters.MaxSegments ||
             (
-                unfinishedMajor.Count == 0 &&
-                unfinishedMinor.Count == 0 &&
+                graph.UnfinishedCount == 0 &&
                 pendingQuarters.Count == 0
             );
         public StreetExpander(CityParameters parameters)
@@ -40,11 +38,11 @@ namespace CityGenerator.Core.Generation
         {
             if (IsComplete)
             {
-                Debug.Log($"Generation complete: edges={graph.Edges.Count}/{parameters.MaxSegments} | unfinishedMajor={unfinishedMajor.Count} | unfinishedMinor={unfinishedMinor.Count} | pendingQuarters={pendingQuarters.Count}");
+                Debug.Log($"Generation complete: edges={graph.Edges.Count}/{parameters.MaxSegments} | unfinishedMajor={graph.UnfinishedMajorCount} | unfinishedMinor={graph.UnfinishedMinorCount} | pendingQuarters={pendingQuarters.Count}");
                 return false;
             }
 
-            Debug.Log($"Expanding: edges={graph.Edges.Count}/{parameters.MaxSegments} | unfinishedMajor={unfinishedMajor.Count} | unfinishedMinor={unfinishedMinor.Count} | pendingQuarters={pendingQuarters.Count}");
+            Debug.Log($"Expanding: edges={graph.Edges.Count}/{parameters.MaxSegments} | unfinishedMajor={graph.UnfinishedMajorCount} | unfinishedMinor={graph.UnfinishedMinorCount} | pendingQuarters={pendingQuarters.Count}");
 
             // Fill pending quarters by adding their nodes
             if (pendingQuarters.Count > 0)
@@ -57,21 +55,25 @@ namespace CityGenerator.Core.Generation
 
             // If there are pending quarters to fill, do that first
             // Process minor nodes before major to fill quarters as they form
-            if (unfinishedMinor.Count > 0)
+            RoadNode? node = SampleNextMinorNode();
+            if (node != null)
             {
-                var node = SampleNode(unfinishedMinor);
                 Debug.Log($"Expanding minor node {node.Position}");
                 ExpandNode(node, RoadType.Minor);
                 return true;
             }
 
             // Otherwise expand a major node
-            if (unfinishedMajor.Count > 0)
+            node = SampleNextMajorNode();
+            if (node != null)
             {
-                var node = SampleNode(unfinishedMajor);
-                Debug.Log($"Expanding major node {node.Position}");
+                Debug.Log($"Expanding major node {node.Position} valence {node.Valence} current valence ratio {graph.MajorValenceRatio}");
                 ExpandNode(node, RoadType.Major);
                 return true;
+            }
+            else
+            {
+                Debug.Log("No major nodes to expand");
             }
 
             return false;
@@ -85,30 +87,22 @@ namespace CityGenerator.Core.Generation
 
         private void Seed()
         {
-            // Place initial segment at highest population point
-            // pointing in an arbitrary direction - growth emerges naturally
-            Vector2 startPos = FindHighestPopulationPoint();
+            // Create seeded major roads from given growth centers 
+            Vector2[] centers = parameters.GrowthCenters;
 
-            Vector2 endPos = startPos + Vector2.right * parameters.MajorStreetLength;
+            foreach (Vector2 center in centers)
+            {
+                Vector2 endPos = center + Vector2.right * parameters.MajorStreetLength;
 
-            var startNode = graph.AddNode(startPos, RoadType.Major);
-            var endNode = graph.AddNode(endPos, RoadType.Major);
+                var startNode = graph.AddNode(center, RoadType.Major);
+                var endNode = graph.AddNode(endPos, RoadType.Major);
 
-            graph.AddEdge(startNode, endNode, RoadType.Major);
-
-            // Start node has invalid EdgeSlot so dont use it
-            //unfinishedMajor.Add(startNode);
-            unfinishedMajor.Add(endNode);
+                graph.AddEdge(startNode, endNode, RoadType.Major);
+            }
         }
 
         private void ExpandNode(RoadNode node, RoadType type)
         {
-            if (node.IsFinished)
-            {
-                RemoveFromUnfinished(node);
-                return;
-            }
-
             float length = (type == RoadType.Major)
                 ? parameters.MajorStreetLength
                 : parameters.MinorStreetLength;
@@ -118,21 +112,19 @@ namespace CityGenerator.Core.Generation
                 : parameters.MaxMinorAngleDeviation;
 
             float? expansionAngle = GetExpansionAngle(node);
-            if (!expansionAngle.HasValue)
+            if (expansionAngle == null)
             {
-                node.IsFinished = true;
-                RemoveFromUnfinished(node);
+                graph.FinishNode(node);
                 return;
             }
 
             float angle = expansionAngle.Value + RandomAngleDeviation(angleDeviation);
 
-
             float rad = angle * Mathf.Deg2Rad;
             Vector2 newDirection = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
             Vector2 newPos = node.Position + newDirection * length;
 
-            Debug.Log($"{node.Position} Expansion angle after deviation {angle} segment from {node.Position} -> {newPos}");
+            //Debug.Log($"{node.Position} Expansion angle after deviation {angle} segment from {node.Position} -> {newPos}");
 
             var segment = new RoadSegment(
                 start: node.Position,
@@ -142,13 +134,13 @@ namespace CityGenerator.Core.Generation
             );
 
             bool success = CommitSegment(segment);
+            OnSegmentProposed?.Invoke(segment, success);
             if (!success)
             {
                 node.FailedExpansions++;
                 if (node.FailedExpansions >= parameters.MaxExpansionFailures)
                 {
-                    node.IsFinished = true;
-                    RemoveFromUnfinished(node);
+                    graph.FinishNode(node);
                 }
             }
             else
@@ -164,36 +156,36 @@ namespace CityGenerator.Core.Generation
 
             RoadNode seedNode = graph.AddNode(quarter.Centroid, RoadType.Minor);
             seedNode.InitialAngle = gridAngle;
-            unfinishedMinor.Add(seedNode);
         }
 
         private bool CommitSegment(RoadSegment segment)
         {
+            // Test LocalConstraints to apply global rules
             var result = LocalConstraints.Apply(segment, graph, parameters);
             if (result == ConstraintResult.Failed) return false;
 
-            bool toNodeExisted = segment.EndNode != null;
+            if (segment.Type == RoadType.Major)
+            {
+                Vector2 midpoint = (segment.Start + segment.End) * 0.5f;
+                foreach (var quarter in knownQuarters)
+                {
+                    if (quarter.IsPointInside(midpoint))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             RoadNode toNode = segment.EndNode ?? graph.AddNode(segment.End, segment.Type);
 
+            // Add edge to the graph
             var edge = graph.AddEdge(segment.StartNode!, toNode, segment.Type);
-            if (edge == null) return false;
 
-            if (segment.StartNode!.Valence >= 4)
-            {
-                segment.StartNode.IsFinished = true;
-                RemoveFromUnfinished(segment.StartNode);
-            }
-
-            if (!toNode.IsFinished && !toNodeExisted)
-            {
-                if (segment.Type == RoadType.Major)
-                    unfinishedMajor.Add(toNode);
-                else
-                    unfinishedMinor.Add(toNode);
-            }
-
+            // Check for new quarters when adding major roads
             if (segment.Type == RoadType.Major)
+            {
                 CheckForNewQuarters(edge);
+            }
 
             return true;
         }
@@ -208,6 +200,56 @@ namespace CityGenerator.Core.Generation
                 Debug.Log($"Quarter detected with {quarter.Nodes.Count} nodes: {string.Join(" -> ", quarter.Nodes.Select(n => n.Position))}");
                 Debug.Log($"Quarter edges: {string.Join(", ", quarter.BoundaryEdges.Select(e => $"{e.A.Position}<->{e.B.Position}"))}");
             }
+        }
+
+        private RoadNode? SampleNextMinorNode()
+        {
+            RoadNode? sample = null;
+            if (graph.HasUnfinishedMinorNodes)
+            {
+                sample = SampleNode(graph.UnfinishedMinorNodes);
+            }
+
+            return sample;
+        }
+
+        private RoadNode? SampleNextMajorNode()
+        {
+            // Valence 0 always has highest priority (new unconnected nodes)
+            RoadNode? sample;
+            if (TrySampleMajorValence(0, out sample)) return sample;
+
+            // Valence 3 has next priority (expand to full junction)
+            if (TrySampleMajorValence(3, out sample)) return sample;
+            float currentRatio = graph.MajorValenceRatio;
+
+            // Check if we need more valence 2 or 4 based on parameters
+            bool needMoreBranches = currentRatio < parameters.TargetBranchRatio;
+
+            if (needMoreBranches)
+            {
+                if (TrySampleMajorValence(2, out sample)) return sample;
+                if (TrySampleMajorValence(1, out sample)) return sample;
+            }
+            else
+            {
+                if (TrySampleMajorValence(1, out sample)) return sample;
+                if (TrySampleMajorValence(2, out sample)) return sample;
+            }
+
+            return null;
+        }
+
+        private bool TrySampleMajorValence(int valence, out RoadNode? sample)
+        {
+            sample = null;
+            if (graph.HasUnfinishedMajorNodes(valence))
+            {
+                sample = SampleNode(graph.UnfinishedMajorNodes(valence));
+                return true;
+            }
+
+            return false;
         }
 
         private RoadNode SampleNode(HashSet<RoadNode> candidates)
@@ -280,52 +322,6 @@ namespace CityGenerator.Core.Generation
             }
 
             return ccwTaken ? cwAngle : ccwAngle;
-        }
-
-        /// <summary>
-        /// Finds the center of the largest angular gap between existing edges.
-        /// </summary>
-        private static float? GetLargestGapAngle(RoadNode node)
-        {
-            if (node.Valence < 2) return null;
-
-            var angles = new List<float>();
-            foreach (var he in node.OutgoingEdges)
-            {
-                float angle = node.GetAngle(he);
-                angles.Add(angle);
-            }
-            angles.Sort();
-
-            float bestGapSize = 0f;
-            float bestGapCenter = 0f;
-
-            for (int i = 0; i < angles.Count; i++)
-            {
-                float a = angles[i];
-                float b = angles[(i + 1) % angles.Count];
-                float gap = b - a;
-                if (gap <= 0f) gap += 360f;
-
-                if (gap > bestGapSize)
-                {
-                    bestGapSize = gap;
-                    bestGapCenter = a + gap * 0.5f;
-                }
-            }
-
-            if (bestGapCenter > 180f) bestGapCenter -= 360f;
-            if (bestGapCenter < -180f) bestGapCenter += 360f;
-
-            Debug.Log($"LargestGap at {node.Position} | valence={node.Valence} | angles=[{string.Join(", ", angles.Select(a => a.ToString("F1")))}] | bestGap={bestGapSize:F1} | bestCenter={bestGapCenter:F1}");
-
-            return bestGapCenter;
-        }
-
-        private void RemoveFromUnfinished(RoadNode node)
-        {
-            unfinishedMajor.Remove(node);
-            unfinishedMinor.Remove(node);
         }
 
         // TODO add runtime population map to change with street expansion as required

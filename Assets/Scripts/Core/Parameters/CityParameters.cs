@@ -16,7 +16,9 @@ namespace CityGenerator.Core.Parameters
         public int MaxSegments = 2000;
         public int HighwaySeedCount = 3;
         public int MaxExpansionFailures = 3;
-        public float MinStreetLength = 10f;
+        [Range(0, 1)]
+        [Tooltip("Target ratio of Valence 4 to Valence 2 nodes (0 means no intersections, 1 means more intersections)")]
+        public float TargetBranchRatio = 0.5f;
 
         [Header("Growth Centers")]
         public Vector2[] GrowthCenters = { Vector2.zero };
@@ -35,6 +37,7 @@ namespace CityGenerator.Core.Parameters
         public float MaxRotationAttempts = 6;
         public float RotationStep = 15f;
         public float MinLengthFactor = 0.4f;
+        public float MinRoadAngle = 30f;
 
         [Header("Population Reduction Settings")]
         public int PopulationMapResolution = 128;
