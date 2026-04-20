@@ -56,9 +56,34 @@ namespace CityGenerator.Core.Generation
                 splitEdge = intersectedEdge;
             }
 
-            else
+            // 3. if no intersection, try snapping to edge
+            if (intersectedEdge == null)
             {
                 segment.End = originalEnd;
+
+                RoadEdge? nearEdge = null;
+                Vector2 nearestPoint = Vector2.zero;
+                float nearestDist = parameters.SnapDistance;
+
+                foreach (var edge in graph.Edges)
+                {
+                    if (edge.A == segment.StartNode || edge.B == segment.StartNode) continue;
+
+                    Vector2 closest = ClosestPointOnSegment(segment.End, edge.A.Position, edge.B.Position);
+                    float dist = Vector2.Distance(segment.End, closest);
+                    if (dist < nearestDist)
+                    {
+                        nearestDist = dist;
+                        nearestPoint = closest;
+                        nearEdge = edge;
+                    }
+                }
+
+                if (nearEdge != null)
+                {
+                    segment.End = nearestPoint;
+                    splitEdge = nearEdge;
+                }
             }
 
             Debug.Log($"[LocalConstraints] After 2 {segment.Angle} from {segment.Start} -> {segment.End}");
@@ -136,6 +161,13 @@ namespace CityGenerator.Core.Generation
             }
 
             return ConstraintResult.Succeed;
+        }
+
+        private static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float t = Mathf.Clamp01(Vector2.Dot(point - a, ab) / ab.sqrMagnitude);
+            return a + t * ab;
         }
 
         private static bool ValidDistance(RoadSegment segment, CityParameters parameters)

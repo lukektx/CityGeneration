@@ -21,7 +21,7 @@ namespace CityGenerator.Runtime
 
         [Header("Map Visual Settings")]
         [SerializeField] private MapVisualizer _mapVisualizer = null!;
-        [SerializeField] private MapType _displayMaps = MapType.Background;
+        [SerializeField] private MapType _displayMaps = MapType.Water;
         [SerializeField] private List<MapDisplayOptions> _mapDisplayOptions = new();
 
         [Header("Simulation Settings")]
@@ -94,7 +94,6 @@ namespace CityGenerator.Runtime
             {
                 MapType.Population => Parameters.PopulationMap,
                 MapType.Water => Parameters.WaterMask,
-                MapType.Background => Texture2D.whiteTexture,
                 // Disabling for now as it doesn't seem to be needed in simulation method
                 //MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
                 _ => null

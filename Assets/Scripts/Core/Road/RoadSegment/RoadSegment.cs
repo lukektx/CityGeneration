@@ -1,5 +1,6 @@
 #nullable enable
 
+using CityGenerator.Core.Quarters;
 using UnityEngine;
 
 namespace CityGenerator.Core.Road
@@ -9,6 +10,7 @@ namespace CityGenerator.Core.Road
         public Vector2 Start { get; }
         public Vector2 End { get; set; }
         public RoadType Type { get; }
+        public Quarter? Quarter { get; }
         public RoadNode? StartNode { get; set; }
         public RoadNode? EndNode { get; set; }
 
@@ -20,13 +22,15 @@ namespace CityGenerator.Core.Road
             Vector2 start,
             Vector2 end,
             RoadType type,
-            RoadNode? startNode = null
+            RoadNode? startNode = null,
+            Quarter? quarter = null
         )
         {
             Start = start;
             End = end;
             Type = type;
             StartNode = startNode;
+            Quarter = quarter;
         }
     }
 }

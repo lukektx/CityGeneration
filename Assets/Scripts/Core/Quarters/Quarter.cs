@@ -60,6 +60,13 @@ namespace CityGenerator.Core.Quarters
             return inside;
         }
 
+        public float[] GetGridAngles()
+        {
+            float main = Mathf.Atan2(MainAxis.y, MainAxis.x) * Mathf.Rad2Deg;
+            float perp = Mathf.Atan2(PerpindicularAxis.y, PerpindicularAxis.x) * Mathf.Rad2Deg;
+            return new[] { main, main + 180f, perp, perp + 180f };
+        }
+
         private Vector2 ComputeCentroid()
         {
             Vector2 sum = Vector2.zero;

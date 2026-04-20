@@ -28,8 +28,8 @@ namespace CityGenerator.Runtime.Visualization
         private MeshFilter? highwayFilter;
         private MeshFilter? streetFilter;
         private LineRenderer _proposedSegmentRenderer;
-        private Material _proposedMinorSegmentMaterial;
-        private Material _proposedMajorSegmentMaterial;
+        private Material? _proposedMinorSegmentMaterial;
+        private Material? _proposedMajorSegmentMaterial;
 
         private const float SPLINE_TANGENT_EPSILON = 0.0001f;
 
@@ -74,9 +74,11 @@ namespace CityGenerator.Runtime.Visualization
 
         public void OnSegmentProposed(RoadSegment segment, bool accepted)
         {
-            Material material = segment.Type == RoadType.Major
+            Material? material = segment.Type == RoadType.Major
                 ? _proposedMajorSegmentMaterial
                 : _proposedMinorSegmentMaterial;
+            if (material == null) return;
+
             material.color = accepted ? _proposedSegmentSuccessColor : _proposedSegmentFailureColor
             ;
             _proposedSegmentRenderer.material = material;

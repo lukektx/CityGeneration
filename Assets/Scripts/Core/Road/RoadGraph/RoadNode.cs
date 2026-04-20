@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace CityGenerator.Core.Road
@@ -39,6 +40,24 @@ namespace CityGenerator.Core.Road
         {
             var dir = (he.Destination.Position - Position).normalized;
             return Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        }
+
+        public HalfEdge? NextCW(HalfEdge halfEdge)
+        {
+            int index = _outgoing.IndexOf(halfEdge);
+            if (_outgoing.Count == 0 || index == -1) return null;
+
+            index = (index - 1 + _outgoing.Count) % _outgoing.Count;
+            return _outgoing[index];
+        }
+
+        public HalfEdge? NextCCW(HalfEdge halfEdge)
+        {
+            int index = _outgoing.IndexOf(halfEdge);
+            if (_outgoing.Count == 0 || index == -1) return null;
+
+            index = (index + 1) % _outgoing.Count;
+            return _outgoing[index];
         }
 
         internal void AddHalfEdge(HalfEdge he)

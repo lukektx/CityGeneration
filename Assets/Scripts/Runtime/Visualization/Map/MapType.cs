@@ -8,7 +8,6 @@ namespace CityGenerator.Runtime.Visualization
         None = 0,
         Population = 1 << 0,
         Water = 1 << 1,
-        Background = 1 << 2,
-        LivePopulation = 1 << 3
+        LivePopulation = 1 << 2
     }
 }

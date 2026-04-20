@@ -101,7 +101,24 @@ namespace CityGenerator.Core.Generation
             }
         }
 
-        private void ExpandNode(RoadNode node, RoadType type)
+        private bool ExpandQuarterNode(RoadNode node, float angle, Quarter quarter)
+        {
+            return ExpandNodeAtAngle(node, RoadType.Minor, angle, quarter: quarter);
+        }
+
+        private bool ExpandNode(RoadNode node, RoadType type)
+        {
+            float? expansionAngle = GetExpansionAngle(node);
+            if (!expansionAngle.HasValue)
+            {
+                graph.FinishNode(node);
+                return false;
+            }
+
+            return ExpandNodeAtAngle(node, type, expansionAngle.Value);
+        }
+
+        private bool ExpandNodeAtAngle(RoadNode node, RoadType type, float angle, Quarter? quarter = null)
         {
             float length = (type == RoadType.Major)
                 ? parameters.MajorStreetLength
@@ -111,14 +128,8 @@ namespace CityGenerator.Core.Generation
                 ? parameters.MaxMajorAngleDeviation
                 : parameters.MaxMinorAngleDeviation;
 
-            float? expansionAngle = GetExpansionAngle(node);
-            if (expansionAngle == null)
-            {
-                graph.FinishNode(node);
-                return;
-            }
+            angle += RandomAngleDeviation(angleDeviation);
 
-            float angle = expansionAngle.Value + RandomAngleDeviation(angleDeviation);
 
             float rad = angle * Mathf.Deg2Rad;
             Vector2 newDirection = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
@@ -130,32 +141,75 @@ namespace CityGenerator.Core.Generation
                 start: node.Position,
                 end: newPos,
                 type: type,
-                startNode: node
+                startNode: node,
+                quarter: quarter
             );
+
+            // Validate with quarter requirements
+            if (!QuarterValidation(segment)) return false;
 
             bool success = CommitSegment(segment);
             OnSegmentProposed?.Invoke(segment, success);
             if (!success)
             {
-                node.FailedExpansions++;
-                if (node.FailedExpansions >= parameters.MaxExpansionFailures)
+                FailedExpansion(node);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void FailedExpansion(RoadNode node)
+        {
+            node.FailedExpansions++;
+            if (node.FailedExpansions >= parameters.MaxExpansionFailures)
+            {
+                graph.FinishNode(node);
+            }
+        }
+
+        private bool QuarterValidation(RoadSegment segment)
+        {
+            Vector2 midpoint = (segment.Start + segment.End) * 0.5f;
+            // Check if in proper quarter
+            if (segment.Quarter != null && !segment.Quarter.IsPointInside(midpoint))
+            {
+                return false;
+            }
+            // If not in quarter, make sure it doesnt go into existing quarter
+            else if (segment.Type == RoadType.Major)
+            {
+                foreach (var quarter in knownQuarters)
                 {
-                    graph.FinishNode(node);
+                    if (quarter.IsPointInside(midpoint))
+                    {
+                        FailedExpansion(segment.StartNode!);
+                        return false;
+                    }
                 }
             }
-            else
-            {
-                Debug.Log($"Success commiting segment from {segment.Start} -> {segment.End} angle {segment.Angle}");
-            }
+
+            return true;
         }
 
         private void FillQuarter(Quarter quarter)
         {
-            Vector2 mainAxis = quarter.MainAxis;
-            float gridAngle = Mathf.Atan2(mainAxis.y, mainAxis.x) * Mathf.Rad2Deg;
+            // HashSet<RoadNode> interiorNodes = graph.Nodes.Where(node => quarter.IsPointInside(node.Position)).ToHashSet();
+            // interiorNodes.UnionWith(quarter.Nodes.ToHashSet());
+            HashSet<RoadNode> boundaryNodes = quarter.Nodes.ToHashSet();
+
+            foreach (RoadNode node in boundaryNodes)
+            {
+                foreach (float angle in quarter.GetGridAngles())
+                {
+                    // Stop after seeding one segment
+                    if (ExpandQuarterNode(node, angle, quarter)) return;
+                }
+            }
 
             RoadNode seedNode = graph.AddNode(quarter.Centroid, RoadType.Minor);
-            seedNode.InitialAngle = gridAngle;
+            seedNode.InitialAngle = Mathf.Atan2(quarter.MainAxis.y, quarter.MainAxis.x) * Mathf.Rad2Deg;
+
         }
 
         private bool CommitSegment(RoadSegment segment)
@@ -163,18 +217,6 @@ namespace CityGenerator.Core.Generation
             // Test LocalConstraints to apply global rules
             var result = LocalConstraints.Apply(segment, graph, parameters);
             if (result == ConstraintResult.Failed) return false;
-
-            if (segment.Type == RoadType.Major)
-            {
-                Vector2 midpoint = (segment.Start + segment.End) * 0.5f;
-                foreach (var quarter in knownQuarters)
-                {
-                    if (quarter.IsPointInside(midpoint))
-                    {
-                        return false;
-                    }
-                }
-            }
 
             RoadNode toNode = segment.EndNode ?? graph.AddNode(segment.End, segment.Type);
 
@@ -304,24 +346,32 @@ namespace CityGenerator.Core.Generation
             return angle;
         }
 
-        private static float ValenceThreeAngle(RoadNode node)
+        private static float? ValenceThreeAngle(RoadNode node)
         {
-            float ccwAngle = node.BaseAngle + 90f;
-            float cwAngle = node.BaseAngle - 90f;
+            if (node.BaseEdge == null) return null;
 
-            // See which one has an existing edge closer to it
-            bool ccwTaken = false;
-            foreach (var he in node.OutgoingEdges)
+            float[] candidates = {
+                node.BaseAngle + 90f,
+                node.BaseAngle + 180f,
+                node.BaseAngle + 270f
+            };
+
+            float bestAngle = 0f;
+            float bestMinDelta = -1f;
+
+            foreach (float candidate in candidates)
             {
-                float angle = node.GetAngle(he);
-                if (Mathf.Abs(Mathf.DeltaAngle(angle, ccwAngle)) < 45f)
+                float minDelta = node.OutgoingEdges
+                    .Min(he => Mathf.Abs(Mathf.DeltaAngle(candidate, node.GetAngle(he))));
+
+                if (minDelta > bestMinDelta)
                 {
-                    ccwTaken = true;
-                    break;
+                    bestMinDelta = minDelta;
+                    bestAngle = candidate;
                 }
             }
 
-            return ccwTaken ? cwAngle : ccwAngle;
+            return bestAngle;
         }
 
         // TODO add runtime population map to change with street expansion as required
