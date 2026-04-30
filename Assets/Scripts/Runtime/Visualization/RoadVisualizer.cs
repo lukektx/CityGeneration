@@ -27,7 +27,7 @@ namespace CityGenerator.Runtime.Visualization
 
         private MeshFilter? highwayFilter;
         private MeshFilter? streetFilter;
-        private LineRenderer _proposedSegmentRenderer;
+        private LineRenderer? _proposedSegmentRenderer;
         private Material? _proposedMinorSegmentMaterial;
         private Material? _proposedMajorSegmentMaterial;
 
@@ -74,6 +74,8 @@ namespace CityGenerator.Runtime.Visualization
 
         public void OnSegmentProposed(RoadSegment segment, bool accepted)
         {
+            if (_proposedSegmentRenderer == null) return;
+
             Material? material = segment.Type == RoadType.Major
                 ? _proposedMajorSegmentMaterial
                 : _proposedMinorSegmentMaterial;

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 628b0bdefe1a38592905af65d107587a, type: 3}
+  m_Name: TrafficParameters
+  m_EditorClassIdentifier: CityGenerator.Core::CityGenerator.Core.Traffic.TrafficParameters
+  BaseSpeed: 15
+  MajorRoadMultiplier: 1
+  MinorRoadMultiplier: 0.5
+  LaneOffset: 0.8
+  RightSideDrive: 1
+  StopDistanceFromIntersection: 4
+  FollowDistance: 5
+  TurnSpeed: 0.8
+  TurnTangentScale: 0.4
+  ReleaseInterval: 1
+  IntersectionValence: 3
+  TripsToSpawn: 150
+  RespawnDelay: 0.2
+  CarBodyMaterialIndex: 0
+  CarColors:
+  - {r: 0.8, g: 0.1, b: 0.1, a: 1}
+  - {r: 0.1, g: 0.2, b: 0.8, a: 1}
+  - {r: 0.9, g: 0.9, b: 0.9, a: 1}
+  - {r: 0.1, g: 0.1, b: 0.1, a: 1}
+  - {r: 0.2, g: 0.6, b: 0.2, a: 1}
+  - {r: 0.9, g: 0.6, b: 0.1, a: 1}

@@ -13,7 +13,6 @@ namespace CityGenerator.Core.Generation
         public static ConstraintResult Apply(RoadSegment segment, RoadGraph graph, CityParameters parameters)
         {
             RoadEdge? splitEdge = null;
-            Debug.Log($"[LocalConstraints] Start {segment.Angle} from {segment.Start} -> {segment.End}");
             // 1. Check if endpoint is legal - try to fix if not
             if (!parameters.IsLegalPosition(segment.End))
             {
@@ -24,7 +23,6 @@ namespace CityGenerator.Core.Generation
                 }
             }
 
-            Debug.Log($"[LocalConstraints] After 1 {segment.Angle} from {segment.Start} -> {segment.End}");
             // 2. Enlarge segment and check for intersections with existing edges
             // Covers case 2 and 3 in paper to 
             float closestIntersectionDist = float.MaxValue;
@@ -51,7 +49,6 @@ namespace CityGenerator.Core.Generation
 
             if (intersectedEdge != null)
             {
-                Debug.Log($"Local constraints shortening segment for intersection, previous end {segment.End} new end {closestIntersection}");
                 segment.End = closestIntersection;
                 splitEdge = intersectedEdge;
             }
@@ -85,8 +82,6 @@ namespace CityGenerator.Core.Generation
                     splitEdge = nearEdge;
                 }
             }
-
-            Debug.Log($"[LocalConstraints] After 2 {segment.Angle} from {segment.Start} -> {segment.End}");
 
             // 3. Snap street endpoints to nearby nodes
             RoadNode? nearby = FindNearbyNode(segment.End, graph, parameters.SnapDistance);

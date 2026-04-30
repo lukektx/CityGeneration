@@ -342,7 +342,6 @@ namespace CityGenerator.Core.Generation
                 3 => ValenceThreeAngle(node),
                 _ => null
             };
-            Debug.Log($"GetExpansionAngle: pos={node.Position} valence={node.Valence} baseAngle={node.BaseAngle:F1} expansionAngle={angle} outgoing=[{string.Join(", ", node.OutgoingEdges.Select(he => $"{node.GetAngle(he):F1}→{he.Destination.Position}"))}]");
             return angle;
         }
 

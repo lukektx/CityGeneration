@@ -1,6 +1,7 @@
 #nullable enable
 
 using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Splines;
 
 namespace CityGenerator.Core.Road
@@ -16,6 +17,8 @@ namespace CityGenerator.Core.Road
         public RoadType Type { get; }
         public Spline Spline { get; }
 
+        public float Length { get; }
+
         public RoadNode Other(RoadNode node) => node == A ? B : A;
 
         public HalfEdge GetHalfFrom(RoadNode node) => node == A ? HalfA : HalfB;
@@ -25,6 +28,8 @@ namespace CityGenerator.Core.Road
         {
             A = a;
             B = b;
+
+            Length = Vector2.Distance(a.Position, b.Position);
 
             HalfA = new HalfEdge(a, this);
             HalfB = new HalfEdge(b, this);

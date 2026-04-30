@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CityGenerator.Core.Generation;
 using CityGenerator.Core.Parameters;
+using CityGenerator.Core.Road;
 using CityGenerator.Runtime.Visualization;
 using UnityEngine;
 
@@ -31,6 +32,9 @@ namespace CityGenerator.Runtime
         [SerializeField] private int _stepsPerFrame = 1;
 
         private StreetExpander? _expander;
+        public RoadGraph? Graph => _expander?.Graph;
+
+        public bool Paused { get; set; }
 
         void Start() => Regenerate();
 
@@ -68,18 +72,26 @@ namespace CityGenerator.Runtime
         {
             while (!_expander!.IsComplete)
             {
-                for (int i = 0; i < _stepsPerFrame; i++)
+                if (Paused)
                 {
-                    if (_expander.IsComplete) break;
-                    _expander.ExpandNext();
+                    yield return null;
                 }
 
-                RoadVisualizer.Refresh(_expander.Graph);
-
-                if (_stepDelay > 0)
-                    yield return new WaitForSeconds(_stepDelay);
                 else
-                    yield return null;
+                {
+                    for (int i = 0; i < _stepsPerFrame; i++)
+                    {
+                        if (_expander.IsComplete) break;
+                        _expander.ExpandNext();
+                    }
+
+                    RoadVisualizer.Refresh(_expander.Graph);
+
+                    if (_stepDelay > 0)
+                        yield return new WaitForSeconds(_stepDelay);
+                    else
+                        yield return null;
+                }
             }
         }
 
