@@ -426,7 +426,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3a7eba3db483883c86ce9fc89392919, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityGenerator.Runtime.CityGeneratorController
-  Parameters: {fileID: 11400000, guid: 412ccfaa3135ad3b0a91a2cdb5482bd2, type: 2}
+  _parameters: {fileID: 11400000, guid: 412ccfaa3135ad3b0a91a2cdb5482bd2, type: 2}
   RoadVisualizer: {fileID: 490626034}
   _mapVisualizer: {fileID: 490626037}
   _displayMaps: 2
@@ -501,6 +501,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: CityGenerator.Runtime::CityGenerator.Runtime.Traffic.TrafficController
   _cityController: {fileID: 490626035}
+  _hudController: {fileID: 1621579697}
   _carPrefab: {fileID: 2540343026720602421, guid: 2ccb3d34b2ef1d59abf6affe59276ccf, type: 3}
   _arrivalParticlePrefab: {fileID: 8381481842360430163, guid: 6c5a321798a83c74c95893f95baf106f, type: 3}
   _parameters: {fileID: 11400000, guid: ea022e28225d93ecebab24de3ff5a41d, type: 2}
@@ -629,6 +630,76 @@ MonoBehaviour:
   _cityController: {fileID: 490626035}
   _topDownCamera: {fileID: 330585545}
   _freeCam: {fileID: 2141387937}
+--- !u!1 &1621579696
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1621579699}
+  - component: {fileID: 1621579698}
+  - component: {fileID: 1621579697}
+  m_Layer: 0
+  m_Name: UI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1621579697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1621579696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f698f4943f2dc57198972a314291a984, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CityGenerator.Runtime::CityGenerator.Runtime.UI.CityHUDController
+  _cityController: {fileID: 490626035}
+  _trafficController: {fileID: 676622367}
+--- !u!114 &1621579698
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1621579696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: d0c50263ded4f1dcd8d150f68e281235, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: 1e3e528ab009db8539d802aa7914d62a, type: 3}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!4 &1621579699
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1621579696}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.93934, y: 0, z: 2.66852}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2141387933
 GameObject:
   m_ObjectHideFlags: 0
@@ -792,3 +863,4 @@ SceneRoots:
   - {fileID: 490626036}
   - {fileID: 676622368}
   - {fileID: 1170691924}
+  - {fileID: 1621579699}

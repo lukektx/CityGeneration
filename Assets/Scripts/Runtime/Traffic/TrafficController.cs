@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using CityGenerator.Core.Road;
 using CityGenerator.Core.Traffic;
+using CityGenerator.Runtime.UI;
 using UnityEngine;
 
 namespace CityGenerator.Runtime
@@ -12,6 +13,7 @@ namespace CityGenerator.Runtime
     public class TrafficController : MonoBehaviour
     {
         [SerializeField] private CityGeneratorController _cityController = null!;
+        [SerializeField] private CityHUDController _hudController = null!;
         [SerializeField] private GameObject _carPrefab = null!;
         [SerializeField] private ParticleSystem _arrivalParticlePrefab = null!;
 
@@ -27,6 +29,13 @@ namespace CityGenerator.Runtime
 
         public bool Paused { get; set; }
 
+        private TrafficParameters _parameterInstance = null!;
+        public TrafficParameters Parameters => _parameterInstance;
+
+        private void Awake()
+        {
+            _parameterInstance = Instantiate(_parameters);
+        }
 
         public void EnterSimulation()
         {
@@ -34,6 +43,8 @@ namespace CityGenerator.Runtime
             Mode = CityMode.Simulation;
             _cityController.Paused = true;
             Paused = false;
+
+            _hudController.SyncToMode(CityMode.Simulation);
 
             var graph = _cityController.Graph;
             if (graph == null)
@@ -43,7 +54,7 @@ namespace CityGenerator.Runtime
             }
 
             _navigationGraph = new NavigationGraph(graph);
-            _simulator = new TrafficSimulator(graph, _navigationGraph, _parameters);
+            _simulator = new TrafficSimulator(graph, _navigationGraph, _parameterInstance);
 
             StartCoroutine(SpawnLoop(graph));
         }
@@ -54,6 +65,8 @@ namespace CityGenerator.Runtime
             Mode = CityMode.Generation;
             _cityController.Paused = false;
             Paused = true;
+
+            _hudController.SyncToMode(CityMode.Generation);
 
             StopAllCoroutines();
             ClearVisuals();
@@ -67,15 +80,15 @@ namespace CityGenerator.Runtime
             var nodes = graph.Nodes;
             if (nodes.Count < 2) yield break;
 
-            while (Mode == CityMode.Simulation && !Paused)
+            while (Mode == CityMode.Simulation)
             {
-                if (_simulator!.Agents.Count < _parameters.TripsToSpawn)
+                if (_simulator!.Agents.Count < _parameterInstance.TripsToSpawn && !Paused)
                 {
                     var (a, b) = PickDistinctNodes(nodes);
                     var agent = _simulator.SpawnTrip(a, b);
                     if (agent != null) CreateVisual(agent);
                 }
-                yield return new WaitForSeconds(_parameters.RespawnDelay);
+                yield return new WaitForSeconds(_parameterInstance.RespawnDelay);
             }
         }
 
@@ -106,16 +119,16 @@ namespace CityGenerator.Runtime
             var go = Instantiate(_carPrefab, ToWorld(agent.WorldPosition), Quaternion.identity);
 
             // Change color of the car randomly
-            if (_parameters.CarColors.Length > 0)
+            if (_parameterInstance.CarColors.Length > 0)
             {
                 var renderer = go.GetComponentInChildren<Renderer>();
                 if (renderer != null)
                 {
-                    var color = _parameters.CarColors[Random.Range(0, _parameters.CarColors.Length)];
+                    var color = _parameterInstance.CarColors[Random.Range(0, _parameterInstance.CarColors.Length)];
                     var mpb = new MaterialPropertyBlock();
-                    renderer.GetPropertyBlock(mpb, _parameters.CarBodyMaterialIndex);
+                    renderer.GetPropertyBlock(mpb, _parameterInstance.CarBodyMaterialIndex);
                     mpb.SetColor(BaseColor, color);
-                    renderer.SetPropertyBlock(mpb, _parameters.CarBodyMaterialIndex);
+                    renderer.SetPropertyBlock(mpb, _parameterInstance.CarBodyMaterialIndex);
                 }
             }
 

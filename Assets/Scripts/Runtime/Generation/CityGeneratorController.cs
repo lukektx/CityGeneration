@@ -15,7 +15,7 @@ namespace CityGenerator.Runtime
     public class CityGeneratorController : MonoBehaviour
     {
         [Header("City Settings")]
-        [SerializeField] private CityParameters Parameters = null!;
+        [SerializeField] private CityParameters _parameters = null!;
 
         [Header("Road Visual Settings")]
         [SerializeField] private RoadVisualizer RoadVisualizer = null!;
@@ -33,10 +33,20 @@ namespace CityGenerator.Runtime
 
         private StreetExpander? _expander;
         public RoadGraph? Graph => _expander?.Graph;
+        private CityParameters _parameterInstance = null!;
+        public CityParameters Parameters => _parameterInstance;
 
         public bool Paused { get; set; }
 
-        void Start() => Regenerate();
+        void Awake()
+        {
+            _parameterInstance = Instantiate(_parameters);
+        }
+
+        void Start()
+        {
+            Regenerate();
+        }
 
         [ContextMenu("Regenerate")]
         public void Regenerate()
@@ -44,7 +54,7 @@ namespace CityGenerator.Runtime
             StopAllCoroutines();
 
             RoadVisualizer.Clear();
-            _expander = new StreetExpander(Parameters);
+            _expander = new StreetExpander(_parameterInstance);
             _expander.OnSegmentProposed += RoadVisualizer.OnSegmentProposed;
 
             if (_stepThrough)
@@ -97,15 +107,15 @@ namespace CityGenerator.Runtime
 
         private void DisplayMap(MapType mapType)
         {
-            _mapVisualizer.ShowTexture(GetMapTexture(mapType), GetDisplayOptions(mapType), Parameters.WorldSize);
+            _mapVisualizer.ShowTexture(GetMapTexture(mapType), GetDisplayOptions(mapType), _parameterInstance.WorldSize);
         }
 
         private Texture2D? GetMapTexture(MapType mapType)
         {
             Texture2D? texture = mapType switch
             {
-                MapType.Population => Parameters.PopulationMap,
-                MapType.Water => Parameters.WaterMask,
+                MapType.Population => _parameterInstance.PopulationMap,
+                MapType.Water => _parameterInstance.WaterMask,
                 // Disabling for now as it doesn't seem to be needed in simulation method
                 //MapDisplay.LivePopulation => _roadGenerator?.RuntimePopulationMap.Texture,
                 _ => null

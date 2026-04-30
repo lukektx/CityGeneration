@@ -36,15 +36,19 @@ namespace CityGenerator.Runtime.Visualization
         private void Awake()
         {
             highwayFilter = CreateMeshObject("Highways", HighwayMaterial);
-            streetFilter = CreateMeshObject("Streets", StreetMaterial);
+            streetFilter = CreateMeshObject("Streets", StreetMaterial, -0.1f);
 
             InitProposedSegment();
         }
 
-        private MeshFilter CreateMeshObject(string name, Material material)
+        private MeshFilter CreateMeshObject(string name, Material material, float? height = null)
         {
             var go = new GameObject(name);
             go.transform.parent = transform;
+            if (height.HasValue)
+            {
+                go.transform.position = new Vector3(0, height.Value, 0);
+            }
             go.AddComponent<MeshRenderer>().material = material;
             return go.AddComponent<MeshFilter>();
         }

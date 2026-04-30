@@ -69,6 +69,10 @@ PrefabInstance:
       value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.1882774
+      objectReference: {fileID: 0}
+    - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_LocalRotation.w
       value: 0.5
       objectReference: {fileID: 0}
@@ -78,11 +82,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.5
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.5
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -90,7 +94,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: -90
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 6747895743011011391, guid: 70a0d58f1d8536585a524c44d9a50a4e, type: 3}
       propertyPath: m_ConstrainProportionsScale

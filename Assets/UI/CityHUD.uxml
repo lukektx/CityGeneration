@@ -1,0 +1,73 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/CityHUD.uss?fileID=7433441132597879392&amp;guid=aec7e36375af38836a4b7c13eea3b92b&amp;type=3#CityHUD"/>
+    <ui:VisualElement name="hud-root" class="hud-root">
+        <ui:VisualElement name="gen-panel" class="panel">
+            <ui:VisualElement class="mode-badge">
+                <ui:VisualElement name="gen-dot" class="mode-dot mode-dot--gen"/>
+                <ui:Label name="gen-mode-label" text="GENERATION MODE" class="mode-label mode-label--gen"/>
+            </ui:VisualElement>
+            <ui:Label text="ROAD NETWORK" class="section-title"/>
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Max Segments" class="param-label"/>
+                <ui:SliderInt name="max-segments-slider" low-value="50" high-value="1000" value="300"/>
+                <ui:Label name="max-segments-value" text="300" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Highway Length" class="param-label"/>
+                <ui:Slider name="highway-length-slider" low-value="10" high-value="100" value="40"/>
+                <ui:Label name="highway-length-value" text="40" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Street Length" class="param-label"/>
+                <ui:Slider name="street-length-slider" low-value="5" high-value="50" value="20"/>
+                <ui:Label name="street-length-value" text="20" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Minimum Length Percentage" class="param-label"/>
+                <ui:Slider name="min-length-slider" low-value="0.01" high-value="1" value="0.4"/>
+                <ui:Label name="min-length-value" text="0.4" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Branch Probability" class="param-label"/>
+                <ui:Slider name="branch-prob-slider" low-value="0" high-value="1" value="0.4"/>
+                <ui:Label name="branch-prob-value" text="0.40" class="param-value"/>
+            </ui:VisualElement>
+            <ui:Button name="regenerate-button" text="REGENERATE" class="action-button action-button--gen"/>
+            <ui:Button name="gen-pause-button" text="PAUSE" class="action-button action-button--gen" />
+            <ui:Label text="TAB - enter simulation" class="hint-text"/>
+            <ui:Label text="V - toggle camera" class="hint-text"/>
+            <ui:Label text="SPACE - toggle pause" class="hint-text"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="sim-panel" class="panel">
+            <ui:VisualElement class="mode-badge">
+                <ui:VisualElement name="sim-dot" class="mode-dot mode-dot--sim"/>
+                <ui:Label name="sim-mode-label" text="SIMULATION MODE" class="mode-label mode-label--sim"/>
+            </ui:VisualElement>
+            <ui:Label text="TRAFFIC" class="section-title"/>
+            <ui:VisualElement class="param-row param-row--sim">
+                <ui:Label text="Active Trips" class="param-label"/>
+                <ui:SliderInt name="trips-slider" low-value="1" high-value="100" value="20"/>
+                <ui:Label name="trips-value" text="20" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row param-row--sim">
+                <ui:Label text="Base Speed" class="param-label"/>
+                <ui:Slider name="speed-slider" low-value="1" high-value="30" value="8"/>
+                <ui:Label name="speed-value" text="8" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row param-row--sim">
+                <ui:Label text="Intersection Delay" class="param-label"/>
+                <ui:Slider name="intersection-delay-slider" low-value="0.2" high-value="5" value="1.2"/>
+                <ui:Label name="intersection-delay-value" text="1.20" class="param-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="param-row param-row--sim">
+                <ui:Label text="Respawn Delay" class="param-label"/>
+                <ui:Slider name="respawn-delay-slider" low-value="0.1" high-value="10" value="2"/>
+                <ui:Label name="respawn-delay-value" text="2.00" class="param-value"/>
+            </ui:VisualElement>
+            <ui:Button name="pause-button" text="PAUSE" class="action-button action-button--sim"/>
+            <ui:Label text="TAB - return to generation" class="hint-text"/>
+            <ui:Label text="V - toggle camera" class="hint-text"/>
+            <ui:Label text="SPACE - toggle pause" class="hint-text"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
