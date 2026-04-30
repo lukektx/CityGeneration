@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using CityGenerator.Core.Road;
 using Unity.Mathematics;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Splines;
 
@@ -179,7 +178,6 @@ namespace CityGenerator.Core.Traffic
             if (PathIndex + 2 >= Trip.Path.Count)
             {
                 _isTurning = false;
-                // Skip past intersection to end
                 PathIndex += 2;
                 State = AgentState.Finished;
                 return;

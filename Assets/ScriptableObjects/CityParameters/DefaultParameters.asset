@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: DefaultParameters
   m_EditorClassIdentifier: CityGenerator.Core::CityGenerator.Core.Parameters.CityParameters
   WorldSize: 500
+  StepThrough: 1
+  StepDelay: 0.2
+  StepsPerFrame: 1
   MaxSegments: 2000
   HighwaySeedCount: 3
   MaxExpansionFailures: 3
-  MinStreetLength: 10
+  TargetBranchRatio: 0.5
   GrowthCenters:
   - {x: 0, y: 0}
   GrowthFocusFactor: 2
@@ -28,6 +31,7 @@ MonoBehaviour:
   MaxRotationAttempts: 6
   RotationStep: 15
   MinLengthFactor: 0.4
+  MinRoadAngle: 30
   PopulationMapResolution: 128
   HighwayReductionRadius: 80
   HighwayReductionAmount: 0.6

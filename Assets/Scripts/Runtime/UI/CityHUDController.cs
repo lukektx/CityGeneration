@@ -57,7 +57,7 @@ namespace CityGenerator.Runtime.UI
                 root.Q<Slider>("min-length-slider"),
                 root.Q<Label>("min-length-value"),
                 _cityParameters.MinLengthFactor,
-                v => _cityParameters.MinLengthFactor = v, "0");
+                v => _cityParameters.MinLengthFactor = v, "F2");
 
             BindSlider(
                 root.Q<Slider>("branch-prob-slider"),

@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.Generic;
-using System.Linq;
 using CityGenerator.Core.Road;
 
 namespace CityGenerator.Core.Traffic
@@ -33,9 +32,6 @@ namespace CityGenerator.Core.Traffic
             }
         }
 
-        /// <summary>
-        /// Spawns a trip between two random nodes. Returns null if no path exists.
-        /// </summary>
         public TrafficAgent? SpawnTrip(RoadNode start, RoadNode end)
         {
             var path = _navigationGraph.FindPath(start, end);
