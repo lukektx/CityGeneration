@@ -1,7 +1,6 @@
 #nullable enable
 
 using System;
-using CityGenerator.Core.Road;
 using UnityEngine;
 
 namespace CityGenerator.Core.Parameters
@@ -11,6 +10,12 @@ namespace CityGenerator.Core.Parameters
     {
         [Header("World Settings")]
         public float WorldSize = 500f;
+
+        [Header("Simulation Settings")]
+        [Tooltip("If enabled, step through simulation instead of instantly computing")]
+        public bool StepThrough = true;
+        public float StepDelay = 0.02f;
+        public int StepsPerFrame = 1;
 
         [Header("Generation Settings")]
         public int MaxSegments = 2000;

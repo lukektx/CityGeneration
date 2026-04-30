@@ -65,6 +65,23 @@ namespace CityGenerator.Runtime.UI
                 _cityParameters.TargetBranchRatio,
                 v => _cityParameters.TargetBranchRatio = v, "F2");
 
+            var stepThroughToggle = root.Q<Toggle>("step-through-toggle");
+            stepThroughToggle.SetValueWithoutNotify(_cityParameters.StepThrough);
+            stepThroughToggle.RegisterValueChangedCallback(evt =>
+                _cityParameters.StepThrough = evt.newValue);
+
+            BindSlider(
+                root.Q<Slider>("step-delay-slider"),
+                root.Q<Label>("step-delay-value"),
+                _cityParameters.StepDelay,
+                v => _cityParameters.StepDelay = v, "F2");
+
+            BindSliderInt(
+                root.Q<SliderInt>("steps-per-frame-slider"),
+                root.Q<Label>("steps-per-frame-value"),
+                _cityParameters.StepsPerFrame,
+                v => _cityParameters.StepsPerFrame = v, "0");
+
             _genPauseButton = root.Q<Button>("gen-pause-button");
             _genPauseButton.clicked += OnGenPauseClicked;
 

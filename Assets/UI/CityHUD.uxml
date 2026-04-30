@@ -32,6 +32,25 @@
                 <ui:Slider name="branch-prob-slider" low-value="0" high-value="1" value="0.4"/>
                 <ui:Label name="branch-prob-value" text="0.40" class="param-value"/>
             </ui:VisualElement>
+            <ui:Label text="STEPPING" class="section-title" />
+
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Step Through" class="param-label" />
+                <ui:Toggle name="step-through-toggle" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Step Delay" class="param-label" />
+                <ui:Slider name="step-delay-slider" low-value="0" high-value="0.5" value="0.02" />
+                <ui:Label name="step-delay-value" text="0.02" class="param-value" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="param-row">
+                <ui:Label text="Steps Per Frame" class="param-label" />
+                <ui:SliderInt name="steps-per-frame-slider" low-value="1" high-value="20" value="1" />
+                <ui:Label name="steps-per-frame-value" text="1" class="param-value" />
+            </ui:VisualElement>
+            
             <ui:Button name="regenerate-button" text="REGENERATE" class="action-button action-button--gen"/>
             <ui:Button name="gen-pause-button" text="PAUSE" class="action-button action-button--gen" />
             <ui:Label text="TAB - enter simulation" class="hint-text"/>

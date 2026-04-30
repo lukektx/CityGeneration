@@ -25,12 +25,6 @@ namespace CityGenerator.Runtime
         [SerializeField] private MapType _displayMaps = MapType.Water;
         [SerializeField] private List<MapDisplayOptions> _mapDisplayOptions = new();
 
-        [Header("Simulation Settings")]
-        [Tooltip("If enabled, step through simulation instead of instantly computing")]
-        [SerializeField] private bool _stepThrough = true;
-        [SerializeField] private float _stepDelay = 0.02f;
-        [SerializeField] private int _stepsPerFrame = 1;
-
         private StreetExpander? _expander;
         public RoadGraph? Graph => _expander?.Graph;
         private CityParameters _parameterInstance = null!;
@@ -57,7 +51,7 @@ namespace CityGenerator.Runtime
             _expander = new StreetExpander(_parameterInstance);
             _expander.OnSegmentProposed += RoadVisualizer.OnSegmentProposed;
 
-            if (_stepThrough)
+            if (_parameterInstance.StepThrough)
             {
                 StartCoroutine(GenerateCoroutine());
             }
@@ -89,7 +83,7 @@ namespace CityGenerator.Runtime
 
                 else
                 {
-                    for (int i = 0; i < _stepsPerFrame; i++)
+                    for (int i = 0; i < _parameterInstance.StepsPerFrame; i++)
                     {
                         if (_expander.IsComplete) break;
                         _expander.ExpandNext();
@@ -97,8 +91,8 @@ namespace CityGenerator.Runtime
 
                     RoadVisualizer.Refresh(_expander.Graph);
 
-                    if (_stepDelay > 0)
-                        yield return new WaitForSeconds(_stepDelay);
+                    if (_parameterInstance.StepDelay > 0)
+                        yield return new WaitForSeconds(_parameterInstance.StepDelay);
                     else
                         yield return null;
                 }

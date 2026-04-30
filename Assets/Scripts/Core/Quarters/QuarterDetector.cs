@@ -41,10 +41,6 @@ namespace CityGenerator.Core.Quarters
             return newQuarters;
         }
 
-        /// <summary>
-        /// Traces a face by following half-edge Next pointers.
-        /// Returns null if the face is not closed or exceeds max steps.
-        /// </summary>
         public static List<HalfEdge>? TraceFace(HalfEdge start, int maxSteps = 100)
         {
             var face = new List<HalfEdge>();
